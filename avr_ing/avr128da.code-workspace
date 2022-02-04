@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "avr128da_boot"
+		},
+		{
+			"path": "avr128da_ld"
 		}
 	],
 	"settings": {

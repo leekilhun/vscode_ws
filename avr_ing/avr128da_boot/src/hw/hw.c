@@ -8,9 +8,10 @@ bool hwInit(void)
   #ifdef _USE_HW_CLI
   cliInit();  
   #endif
+   uartInit();
+
   ledInit();
-  infoInit();
-  uartInit();
+  infoInit(); 
   buttonInit();
   resetInit();
   flashInit();
