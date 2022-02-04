@@ -25,6 +25,7 @@ CMakeFiles/
 Testing/
 _htmresc/
 
+build/
 
 pico-examples/
 pico-sdk/
