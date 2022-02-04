@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "avr128da_fw"
+		},
+		{
+			"path": "avr128da_boot"
 		}
 	],
 	"settings": {
