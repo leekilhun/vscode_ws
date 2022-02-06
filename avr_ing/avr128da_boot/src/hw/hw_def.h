@@ -6,7 +6,7 @@
 #include "bsp.h"
 
 
-#define _DEF_FIRMWATRE_VERSION    "B220112R1"
+#define _DEF_FIRMWATRE_VERSION    "B220201R1"
 #define _DEF_BOARD_NAME           "AVR128DA48"
 
 
@@ -33,9 +33,11 @@
 #define      HW_BUTTON_OBJ_USE      1
 
 #define _USE_HW_CMD
-#define      HW_CMD_MAX_DATA_LENGTH 256
+#define      HW_CMD_MAX_DATA_LENGTH (256+8)
 
 
 #define FLASH_ADDR_FW               0x4000
+#define FLASH_ADDR_FW_VER           0x40EC
+#define FLASH_ADDR_FW_TAG           (127L*1024L)
 
 #endif

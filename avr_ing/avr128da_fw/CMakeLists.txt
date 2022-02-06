@@ -67,7 +67,7 @@ target_link_options(${EXECUTABLE} PRIVATE
   -Wl,--gc-sections
   -Wl,--section-start=.text=0x4000
   -Wl,--section-start=.data=0x00804010
-  -Wl,--defsym=__TEXT_REGION_LENGTH__=112K
+  -Wl,--defsym=__TEXT_REGION_LENGTH__=111K
   -Xlinker -print-memory-usage -Xlinker
   )
 
@@ -76,6 +76,12 @@ add_custom_command(TARGET ${EXECUTABLE}
   POST_BUILD
   COMMAND ${CMAKE_OBJCOPY} ARGS -O ihex -R .eeprom ${EXECUTABLE} ${PROJECT_NAME}.hex
   COMMENT "Invoking: Make Hex"
+  )  
+
+add_custom_command(TARGET ${EXECUTABLE} 
+  POST_BUILD
+  COMMAND ${CMAKE_OBJCOPY} ARGS -O binary -R .eeprom ${EXECUTABLE} ${PROJECT_NAME}.bin
+  COMMENT "Invoking: Make Bin"
   )  
 
 add_custom_command(TARGET ${EXECUTABLE} 
