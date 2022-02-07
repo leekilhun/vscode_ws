@@ -44,4 +44,25 @@
 #define map(value, in_min, in_max, out_min, out_max) ((value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 #endif
 
+
+#define VERSION_MAGIC_NUMBER      0x56455220    // "VER "
+#define TAG_MAGIC_NUMBER          0x54414720    // "TAG "
+
+
+typedef struct 
+{
+  uint32_t magic_number;
+  char version_str[32];
+  char name_str[32];
+} firm_ver_t;
+
+typedef struct 
+{
+  uint32_t magic_number;
+  uint32_t fw_addr;
+  uint32_t fw_size;
+  uint32_t fw_crc;
+} firm_tag_t;
+
+
 #endif

@@ -15,6 +15,13 @@ extern "C" {
 #include "button.h"
 #include "reset.h"
 #include "flash.h"
+#include "gpio.h"
+#include "spi.h"
+#include "lcd.h"
+#include "dxl.h"
+#include "sw_timer.h"
+#include "mcp2515.h"
+#include "can.h"
 
 
 bool hwInit(void);

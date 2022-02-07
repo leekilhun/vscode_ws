@@ -104,9 +104,46 @@ void cliInfo(cli_args_t *args)
     ret = true;
   }
 
+  if (args->argc == 1 && args->isStr(0, "version") == true)
+  {
+    firm_ver_t ver;
+    
+    cliPrintf_P(PSTR("\n"));
+    
+    memcpy_PF(&ver, FLASH_ADDR_BOOT_VER, sizeof(firm_ver_t));
+    cliPrintf_P(PSTR("Boot Version\n"), ver.magic_number);
+    if (ver.magic_number == VERSION_MAGIC_NUMBER)
+    {
+      cliPrintf_P(PSTR("   Magic   : 0x%lX\n"), ver.magic_number);
+      cliPrintf_P(PSTR("   Version : %s\n"), ver.version_str);
+      cliPrintf_P(PSTR("   Name    : %s\n"), ver.name_str);
+    }
+    else
+    {
+      cliPrintf_P(PSTR("   Empty\n"));
+    }
+
+    cliPrintf_P(PSTR("\n"));
+
+    memcpy_PF(&ver, FLASH_ADDR_FW_VER, sizeof(firm_ver_t));
+    cliPrintf_P(PSTR("Firm Version\n"), ver.magic_number);
+    if (ver.magic_number == VERSION_MAGIC_NUMBER)
+    {
+      cliPrintf_P(PSTR("   Magic   : 0x%lX\n"), ver.magic_number);
+      cliPrintf_P(PSTR("   Version : %s\n"), ver.version_str);
+      cliPrintf_P(PSTR("   Name    : %s\n"), ver.name_str);
+    }
+    else
+    {
+      cliPrintf_P(PSTR("   Empty\n"));
+    }
+    ret = true;
+  }
+
   if (ret != true)
   {
     cliPrintf_P(PSTR("info fuse\n"));
+    cliPrintf_P(PSTR("info version\n"));
   }
 }
 #endif

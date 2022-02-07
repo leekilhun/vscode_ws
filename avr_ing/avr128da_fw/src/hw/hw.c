@@ -10,7 +10,7 @@ volatile const firm_ver_t firm_ver __attribute__((section(".vectors"))) =
 };
 
 
-
+extern bool ssd1306Init(void);
 
 bool hwInit(void)
 {
@@ -19,14 +19,26 @@ bool hwInit(void)
   #ifdef _USE_HW_CLI
   cliInit();  
   #endif
+  swTimerInit();
+  gpioInit();
   ledInit();
   infoInit();
-  uartInit();
+  uartInit();  
+  uartOpen(_DEF_UART1, 115200);
+  uartOpen(_DEF_UART2, 115200);
+  uartOpen(_DEF_UART3, 115200);
+
+  spiInit();
   buttonInit();
   resetInit();
-  flashInit();
+  flashInit();  
+  lcdInit();  
+  dxlInit();
+
+  sei();  
+
+  canInit();
   
-  sei();
   return true;
 }
 
