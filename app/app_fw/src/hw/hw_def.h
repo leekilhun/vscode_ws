@@ -87,7 +87,7 @@
 #define      HW_SW_TIMER_MAX_CH     4
 
 
-#define _USE_HW_CMD
+//#define _USE_HW_CMD
 
 #define _USE_HW_CMD_FASTECH
 

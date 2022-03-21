@@ -86,6 +86,7 @@ bool uartOpen(uint8_t ch, uint32_t baud)
 
         HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8);
         HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8);
+      
         HAL_UARTEx_DisableFifoMode(&huart1);
 
         if (HAL_UART_Receive_IT(&huart1, (uint8_t *)&rx_data[ch], 1) != HAL_OK)

@@ -20,7 +20,8 @@ static void threadEvent(void const *argument);
 
 // 3. 로직 객체
 
-/////
+// 4.
+uiNextionLcd nextion_lcd;
 
 void apInit(void)
 {
@@ -62,6 +63,28 @@ void apInit(void)
   ######################################################*/
 void apMain(void)
 {
+/*user display object*/
+  uiNextionLcd::cfg_t lcd_cfg ={0,};
+  // lcd_cfg.p_apReg = &mcu_reg;
+  // lcd_cfg.p_apIo = &mcu_io;
+  // lcd_cfg.p_Fm = &fastech_motor;
+  // lcd_cfg.p_apAxisDat =&axis_data;
+  // lcd_cfg.p_apCylDat =&cyl_data;
+  // lcd_cfg.p_apVacDat =&vac_data;
+  // lcd_cfg.p_apCfgDat = &apCfg_data;
+  // lcd_cfg.p_apSeqDat = &seq_data;
+  // lcd_cfg.p_Ap=&process;
+  // lcd_cfg.p_Auto = &autoManager;
+  // lcd_cfg.p_Log = &mcu_log;
+  lcd_cfg.ch = _DEF_UART3;
+  lcd_cfg.baud = 115200;//250000;//;
+  nextion_lcd.Init(&lcd_cfg);
+
+
+
+
+
+
 uint32_t pre_main_ms = millis();
   while (1)
   {
@@ -69,7 +92,7 @@ uint32_t pre_main_ms = millis();
     if (millis() - pre_main_ms >= 1000)
     {
       ledToggle(_DEF_LED1);
-      
+
       pre_main_ms = millis();
     }
   }
@@ -98,12 +121,39 @@ void threadCmdLcd(void const *argument)
 {
   UNUSED(argument);
 
+  uint8_t err_cnt = 0;
   uint32_t pre_cmd_lcd_ms = millis();
   while (1)
   {
+    if (cmdNextion_ReceivePacket(&nextion_lcd.m_Packet))
+    {
+      nextion_lcd.m_IsConnected = true;
+      nextion_lcd.ProcessCmd();
+    }
+
+    nextion_lcd.ThreadJob();
+
     if (millis() - pre_cmd_lcd_ms >= 50)
     {
       pre_cmd_lcd_ms = millis();
+      if (nextion_lcd.m_IsConnected)
+      {
+        nextion_lcd.m_IsConnected = false;
+        nextion_lcd.LcdUpdate();
+        err_cnt = 0;
+      }
+      else if (err_cnt > 30)
+      {
+        err_cnt = 0;
+        nextion_lcd.CommRecovery();
+        nextion_lcd.m_IsConnected = true;
+        //mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = true;
+      }
+      else
+      {
+        nextion_lcd.LcdUpdate();
+        err_cnt++;
+      }
     }
   }
 }
