@@ -48,7 +48,7 @@ cnProcess process;
 uiNextionLcd nextion_lcd;
 uiRemoteCtrl remote_ctrl;
 
-
+uint32_t check_pass_ms = 0;
 
 void apInit(void)
 {
@@ -178,9 +178,13 @@ void apMain(void)
   /****************************/
   /* loading eeprom data*/
   apCfg_data.LoadRomData();
+  delay(5);
   axis_data.LoadRomData();
+  delay(5);
   cyl_data.LoadRomData();
+  delay(5);
   vac_data.LoadRomData();
+  delay(5);
   seq_data.LoadRomData();
 
   /*log test*/
@@ -234,6 +238,7 @@ void threadEvent(void const *argument)
     {
       pre_cmd_event_ms = millis();
       remote_ctrl.SendAllState();
+      check_pass_ms = millis() - pre_cmd_event_ms;
     }
   }
 }

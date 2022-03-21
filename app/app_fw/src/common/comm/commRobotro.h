@@ -44,6 +44,7 @@
      uint8_t   error;
 
      robotro_packet_t  rx_packet;
+     robotro_packet_t  tx_packet;
    } robotro_t;
 
 

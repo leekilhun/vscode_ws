@@ -8,7 +8,7 @@
 #ifndef SRC_AP_CONTROL_CNPROCESS_H_
 #define SRC_AP_CONTROL_CNPROCESS_H_
 
-#define CN_PROCESS_MAX_BUFFER_LENGTH                40
+#define CN_PROCESS_MAX_BUFFER_LENGTH                20
 
 #define CN_PROCESS_STEP_INIT                        0
 #define CN_PROCESS_STEP_TODO                        1

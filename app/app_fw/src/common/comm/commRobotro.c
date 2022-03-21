@@ -24,9 +24,6 @@
 #define RBTRO_CMD_STATE_WAIT_CHECKSUM     5
 #define RBTRO_CMD_STATE_WAIT_ETX          6
 
-
-
-
 void cmdRobotro_Init(robotro_t *p_cmd)
 {
   p_cmd->is_init = false;
@@ -91,7 +88,10 @@ bool cmdRobotro_ReceivePacket(robotro_t *p_cmd)
       if (rx_data == RBTRO_CMD_STX)
       {
         p_cmd->data_len = 0;
+        p_cmd->index = 0;
         memset(&p_cmd->rx_packet.buffer[0],0,RBTRO_CMD_MAX_PACKET_BUFF_LENGTH);
+
+        p_cmd->rx_packet.buffer[p_cmd->data_len++] = rx_data;
         p_cmd->rx_packet.check_sum = 0;
         p_cmd->state = RBTRO_CMD_STATE_WAIT_ID;
       }
@@ -140,7 +140,6 @@ bool cmdRobotro_ReceivePacket(robotro_t *p_cmd)
 
     case RBTRO_CMD_STATE_WAIT_CHECKSUM:
       p_cmd->rx_packet.buffer[p_cmd->data_len++] = rx_data;
-      p_cmd->rx_packet.check_sum += rx_data;
       p_cmd->rx_packet.check_sum_recv = rx_data;
       if (p_cmd->rx_packet.check_sum == p_cmd->rx_packet.check_sum_recv)
       {
@@ -163,24 +162,23 @@ bool cmdRobotro_SendCmd(robotro_t *p_cmd, uint8_t cmd, uint8_t *p_data, uint8_t 
 {
   uint32_t index;
 
-
   index = 0;
   uint8_t check_sum = 0;
-  p_cmd->rx_packet.buffer[index++] = RBTRO_CMD_STX;
-  p_cmd->rx_packet.buffer[index++] = p_cmd->rx_packet.mot_id;
-  p_cmd->rx_packet.buffer[index++] = cmd;
-  p_cmd->rx_packet.buffer[index++] = length;
+  p_cmd->tx_packet.buffer[index++] = RBTRO_CMD_STX;
+  p_cmd->tx_packet.buffer[index++] = p_cmd->rx_packet.mot_id;
+  p_cmd->tx_packet.buffer[index++] = cmd;
+  p_cmd->tx_packet.buffer[index++] = length;
   check_sum = p_cmd->rx_packet.mot_id + cmd + length;
   for (int i=0; i<length; i++)
   {
-    p_cmd->rx_packet.buffer[index++] = p_data[i];
+    p_cmd->tx_packet.buffer[index++] = p_data[i];
     check_sum += p_data[i];
   }
 
-  p_cmd->rx_packet.buffer[index++] = check_sum;
-  p_cmd->rx_packet.buffer[index++] = RBTRO_CMD_ETX;
+  p_cmd->tx_packet.buffer[index++] = check_sum;
+  p_cmd->tx_packet.buffer[index++] = RBTRO_CMD_ETX;
 
-  return (uartWrite(p_cmd->ch, p_cmd->rx_packet.buffer, index) > 0);
+  return (uartWrite(p_cmd->ch, p_cmd->tx_packet.buffer, index) > 0);
 }
 
 bool cmdRobotro_SendCmdRxResp(robotro_t *p_cmd, uint8_t cmd, uint8_t *p_data, uint8_t length, uint32_t timeout)
