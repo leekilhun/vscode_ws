@@ -8,24 +8,51 @@
 #include "ap.h"
 
 static void threadCmdLcd(void const *argument);
-
 static void threadCmdFastechMotor(void const *argument);
 static void threadEvent(void const *argument);
 
 #define AP_DEF_ERROR_CNT_MAX 10
+uint16_t refresh_time = 1000;
+uint8_t errCnt = 0;
+uint32_t lamp_ms = 0;
 
-/*ap에서 생성할 물리 객체들 */
+void updateApReg();
+void updateErr();
+void eventOpPanel();
+void updateLamp();
 
-// 2. 물리 객체들
+/****************************************************
+  0. mcu data and register 
+ ****************************************************/
+Ap_reg mcu_reg;
+ap_io mcu_io;
+ap_dat apCfg_data;
+axis_dat axis_data;
+cyl_dat cyl_data;
+vac_dat vac_data;
+seq_dat seq_data;
+ap_log mcu_log;
+/****************************************************
+  1. ap에서 생성할 객체 
+ ****************************************************/
+// engine layer (물리 계층)
+enFastechMotor fastech_motor(AP_DEF_OBJ_MOTOR_ID_0);
+enCylinder cyl[AP_DEF_OBJ_CYLINDER_ID_MAX];
+enVacuum vac_0;
 
-// 3. 로직 객체
+// control  (로직 계층)
+cnAutoManager autoManager;
+cnProcess process;
 
-// 4.
+// user interface.
 uiNextionLcd nextion_lcd;
+uiRemoteCtrl remote_ctrl;
+
+
 
 void apInit(void)
 {
-  /**/
+  /* rtos */
   osThreadDef(threadCmdLcd, threadCmdLcd, _HW_DEF_RTOS_THREAD_PRI_LCD_CMD, 0, _HW_DEF_RTOS_THREAD_MEM_LCD_CMD);
   if (osThreadCreate(osThread(threadCmdLcd), NULL) != NULL)
   {
@@ -56,6 +83,56 @@ void apInit(void)
   {
     logPrintf("threadEvent \t\t: Fail\r\n");
   }
+
+
+  /*Initialize */
+  enFastechMotor::cfg_t fm_cfg = {0, };
+  fm_cfg.p_apReg = &mcu_reg;
+  fm_cfg.p_apIo = &mcu_io;
+  fm_cfg.p_apDat = &axis_data;
+  fm_cfg.ch = _DEF_UART1;
+  fm_cfg.baud = 115200;
+  fastech_motor.Init(&fm_cfg);
+
+  enCylinder::cfg_t cyl_cfg = {0, };
+  cyl_cfg.cyl_id = 0;
+  cyl_cfg.cyl_type = ICylinder::type_e::up_down;
+  cyl_cfg.sol_type = ICylinder::sol_e::two;
+  cyl_cfg.pApIo = (IIO *)&mcu_io;
+  cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::phone_clamp_cyl);
+  cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_on);
+  cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_off);
+  
+  cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_on);
+  cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_off);
+  
+
+  cyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].SetConfigData(&cyl_cfg);
+
+  enVacuum::cfg_t vac_cfg = {0, };
+  vac_cfg.vac_id = 0;
+  vac_cfg.vac_type = IVacuum::type_e::suction_blow;
+  vac_cfg.pApIo = (IIO *)&mcu_io;
+  vac_cfg.pVacDat = vac_data.GetData(vac_dat::addr_e::peel_drum_vac);
+  vac_cfg.sensor_io = static_cast<uint32_t>(ap_io::in_e::mcu_in_vac_on);
+  vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_on);
+  vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_off);
+
+  vac_0.SetConfigData(&vac_cfg);
+
+  cnProcess::cfg_t prc_cfg = {0,};
+  prc_cfg.p_apReg = &mcu_reg;
+  prc_cfg.p_apIo = &mcu_io;
+  prc_cfg.p_Fm = &fastech_motor;
+  prc_cfg.p_AutoManger = &autoManager;
+  prc_cfg.p_apAxisDat =&axis_data;
+  prc_cfg.p_apCylDat =&cyl_data;
+  prc_cfg.p_apVacDat =&vac_data;
+  prc_cfg.p_apCfgDat = &apCfg_data;
+  prc_cfg.p_apSeqDat = &seq_data;
+  process.Init(&prc_cfg);
+
+
 }
 
 /*######################################################
@@ -63,38 +140,71 @@ void apInit(void)
   ######################################################*/
 void apMain(void)
 {
-/*user display object*/
-  uiNextionLcd::cfg_t lcd_cfg ={0,};
-  // lcd_cfg.p_apReg = &mcu_reg;
-  // lcd_cfg.p_apIo = &mcu_io;
-  // lcd_cfg.p_Fm = &fastech_motor;
-  // lcd_cfg.p_apAxisDat =&axis_data;
-  // lcd_cfg.p_apCylDat =&cyl_data;
-  // lcd_cfg.p_apVacDat =&vac_data;
-  // lcd_cfg.p_apCfgDat = &apCfg_data;
-  // lcd_cfg.p_apSeqDat = &seq_data;
-  // lcd_cfg.p_Ap=&process;
-  // lcd_cfg.p_Auto = &autoManager;
-  // lcd_cfg.p_Log = &mcu_log;
+  /*user display object*/
+  uiNextionLcd::cfg_t lcd_cfg = {0, };
+  lcd_cfg.p_apReg = &mcu_reg;
+  lcd_cfg.p_apIo = &mcu_io;
+  lcd_cfg.p_Fm = &fastech_motor;
+  lcd_cfg.p_apAxisDat = &axis_data;
+  lcd_cfg.p_apCylDat = &cyl_data;
+  lcd_cfg.p_apVacDat = &vac_data;
+  lcd_cfg.p_apCfgDat = &apCfg_data;
+  lcd_cfg.p_apSeqDat = &seq_data;
+  lcd_cfg.p_Ap=&process;
+  lcd_cfg.p_Auto = &autoManager;
+  lcd_cfg.p_Log = &mcu_log;
   lcd_cfg.ch = _DEF_UART3;
-  lcd_cfg.baud = 115200;//250000;//;
+  lcd_cfg.baud = 115200; // 250000;//;
   nextion_lcd.Init(&lcd_cfg);
 
+  /* remote control and monitor */
+  uiRemoteCtrl::cfg_t remote_cfg = {0, };
+  remote_cfg.p_apReg = &mcu_reg;
+  remote_cfg.p_apIo = &mcu_io;
+  remote_cfg.p_apAxisDat = &axis_data;
+  remote_cfg.p_apCylDat = &cyl_data;
+  remote_cfg.p_apVacDat = &vac_data;
+  remote_cfg.p_apCfgDat = &apCfg_data;
+  remote_cfg.p_apSeqDat = &seq_data;
+  remote_cfg.p_Ap=&process;
+  remote_cfg.p_Auto = &autoManager;
+  remote_cfg.p_Fm = &fastech_motor;
+  remote_cfg.p_Log = &mcu_log;
+  remote_cfg.ch = _DEF_UART2;
+  remote_cfg.baud = 115200;
 
+  remote_ctrl.Init(&remote_cfg);
 
+  /****************************/
+  /* loading eeprom data*/
+  apCfg_data.LoadRomData();
+  axis_data.LoadRomData();
+  cyl_data.LoadRomData();
+  vac_data.LoadRomData();
+  seq_data.LoadRomData();
 
+  /*log test*/
+  // log_dat::head_t head_inf ={17,2,3,4};
+  // mcu_log.apLogWrite(head_inf,"test log id[%d]",7);
+  // mcu_log.apLogWrite(head_inf,"write contents id[%d]",5);
+  // mcu_log.apLogWrite(head_inf,"error log id[%d]",5);
+  /****************************/
 
+  /*Assign Obj */
+  mcu_io.assignObj((IIO *)&fastech_motor);
 
-uint32_t pre_main_ms = millis();
+  uint32_t pre_main_ms = millis();
   while (1)
   {
     HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);
-    if (millis() - pre_main_ms >= 1000)
+    if (millis() - pre_main_ms >= refresh_time)
     {
       ledToggle(_DEF_LED1);
-
       pre_main_ms = millis();
     }
+    updateErr();
+    updateApReg();
+    updateLamp();
   }
 }
 
@@ -107,9 +217,23 @@ void threadEvent(void const *argument)
   uint32_t pre_cmd_event_ms = millis();
   while (1)
   {
-    if (millis() - pre_cmd_event_ms >= 50)
+    /*1. op panel check event -> update autoManager flag and mcu register */
+    eventOpPanel();
+
+    /*2. check auto ready state */
+    autoManager.ThreadJob();
+
+    /*3. job process  */
+    process.ThreadJob();
+
+    /*4. remote control */
+    remote_ctrl.ThreadJob();
+
+    /* send all state */
+    if (millis() - pre_cmd_event_ms >=50)
     {
       pre_cmd_event_ms = millis();
+      remote_ctrl.SendAllState();
     }
   }
 }
@@ -128,6 +252,7 @@ void threadCmdLcd(void const *argument)
     if (cmdNextion_ReceivePacket(&nextion_lcd.m_Packet))
     {
       nextion_lcd.m_IsConnected = true;
+      mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = false;
       nextion_lcd.ProcessCmd();
     }
 
@@ -147,7 +272,7 @@ void threadCmdLcd(void const *argument)
         err_cnt = 0;
         nextion_lcd.CommRecovery();
         nextion_lcd.m_IsConnected = true;
-        //mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = true;
+        mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = true;
       }
       else
       {
@@ -165,11 +290,171 @@ void threadCmdFastechMotor(void const *argument)
 {
   UNUSED(argument);
   uint32_t pre_cmd_fm_ms = millis();
+  uint8_t  err_cnt = 0;
   while (1)
   {
-    if (millis() - pre_cmd_fm_ms >= 50)
+    if (cmdFastech_ReceivePacket(&fastech_motor.m_Packet))
     {
-      pre_cmd_fm_ms = millis();    
+      fastech_motor.m_IsConnected = true;
+      mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT] = false;
+      
+      fastech_motor.ProcessCmd();
+    }
+
+    /* request all state */
+    if (millis() - pre_cmd_fm_ms >= 100)
+    {
+      pre_cmd_fm_ms = millis();
+      if (fastech_motor.m_IsConnected)
+      {
+        fastech_motor.m_IsConnected = false;
+        fastech_motor.SendGetAllStatus();
+        err_cnt = 0;
+      }
+      else if (err_cnt > 30)
+      {
+        err_cnt = 0;
+        fastech_motor.CommRecovery();
+        fastech_motor.m_IsConnected = true;
+        mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT] = true;
+      }
+      else
+      {
+        fastech_motor.SendGetAllStatus();
+        err_cnt++;
+      }
     }
   }
+}
+
+
+
+
+
+
+
+void eventOpPanel()
+{
+  if (opPanel_GetPressed(OP_SWITCH_ESTOP))
+  {
+    mcu_reg.SetRunState(AP_REG_EMG_STOP, true);
+    return;
+  }
+  else
+  {
+    mcu_reg.SetRunState(AP_REG_EMG_STOP, false);
+  }
+
+  if (opPanel_GetPressed(OP_SWITCH_START))
+  {
+    autoManager.StartSw();
+  }
+  else if (opPanel_GetPressed(OP_SWITCH_STOP))
+  {
+    mcu_reg.SetRunState(AP_REG_AUTO_RUNNING, false);
+    autoManager.StopSw();
+  }
+  else if (opPanel_GetPressed(OP_SWITCH_RESET))
+  {
+    mcu_reg.SetRunState(AP_REG_ALARM_STATUS, false);
+    autoManager.ResetSw();
+  }
+}
+
+void updateLamp()
+{
+  opStatus op_state = autoManager.GetOPStatus();
+
+  switch (op_state)
+  {
+    case OP_INIT_STATUS:
+      if (millis() - lamp_ms >=1000)
+      {
+        lamp_ms = millis();
+        mcu_io.OutputToggle(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_START);
+      }
+      break;
+
+    case OP_ERROR_STOP:
+      if (millis() - lamp_ms >=300)
+      {
+        lamp_ms = millis();
+        mcu_io.OutputToggle(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_STOP);
+      }
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_START);
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_RESET);
+      mcu_reg.SetRunState(AP_REG_ERROR_STOP, true);
+      break;
+
+    case OP_STEP_STOP:
+      mcu_io.OutputOn(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_STOP);
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_START);
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_RESET);
+      mcu_reg.SetRunState(AP_REG_ERROR_STOP, true);
+      break;
+
+    case OP_START_RUN:
+      if (millis() - lamp_ms >=1000)
+      {
+        lamp_ms = millis();
+        mcu_io.OutputToggle(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_START);
+      }
+
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_STOP);
+      mcu_io.OutputOff(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_RESET);
+      mcu_reg.SetRunState(AP_REG_AUTO_READY, true);
+      break;
+
+    case OP_RUN:
+      mcu_io.OutputOn(AP_IO_DEF_IO_ADDR_MCU_OUT_LAMP_START);
+      mcu_reg.SetRunState(AP_REG_AUTO_RUNNING, true);
+      break;
+    default:
+      break;
+  }
+
+}
+
+void updateErr()
+{
+// Check the error status of the constructed uint
+// auto run 상태의 process-step 운영에서 발생되는 에러 정지는 포함하지 않는다
+  if (mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT])
+  {
+    if (errCnt  >= AP_DEF_ERROR_CNT_MAX)
+    {
+      errCnt = 0;
+      mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_CLEAR] = false;
+      refresh_time = 100;
+    }
+    else
+    {
+      errCnt++;
+    }
+  }
+  else if (mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD])
+  {
+    if (errCnt  >= AP_DEF_ERROR_CNT_MAX)
+    {
+      errCnt = 0;
+      mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_CLEAR] = false;
+      refresh_time = 300;
+    }
+    else
+    {
+      errCnt++;
+    }
+  }
+  else
+  {
+    errCnt = 0;
+    mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_CLEAR] = true;
+    refresh_time = 1000;
+  }
+}
+
+
+void updateApReg()
+{
+  mcu_io.Update_io();
 }

@@ -10,10 +10,35 @@
 
 #include "module.h"
 
+
 #include "commFastech.h"
 #include "commNextion.h"
+#include "commRobotro.h"
 
 #include "ap_util.h"
+
+/* data object*/
+#include "ap_obj.h"
+#include "ap_dat.h"
+#include "ap_log.h"
+
+/* interface object*/
+#include "interface/IIO.h"
+#include "interface/IAxis.h"
+#include "interface/IVacuum.h"
+#include "interface/ICylinder.h"
+
+/* ap object */
+/* register -> communication -> basic unit(engine) -> combined unit(engine) -> control */
+//register + io_manager
+#include "ap_reg.h"
+#include "ap_io.h"
+
+//basic
+#include "engine/enCylinder.h"
+#include "engine/enVacuum.h"
+#include "engine/enFastechMotor.h"
+
 
 struct prc_step_t
 {
@@ -31,12 +56,12 @@ struct prc_step_t
 
 } ;
 //control
-//#include "control/cnAutoManager.h"
-//#include "control/cnProcess.h"
+#include "control/cnAutoManager.h"
+#include "control/cnProcess.h"
 
 
 #include "ap_ui/uiNextionLcd.h"
-//#include "ap_ui/uiRemoteCtrl.h"
+#include "ap_ui/uiRemoteCtrl.h"
 
 typedef struct
 {

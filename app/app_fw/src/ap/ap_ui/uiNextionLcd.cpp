@@ -8,109 +8,122 @@
 #include "ap_def.h"
 #include <ap_ui/uiNextionLcd.h>
 
-#define UI_NXLCD_COMM_ERROR_CNT_MAX 10
+#define UI_NXLCD_COMM_ERROR_CNT_MAX                   10
 
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_ON B00000001
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_OFF B00000010
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED2 B00000100
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_STOP B00001000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_START B00010000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED5 B00100000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CW B01000000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CCW B10000000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_ON           B00000001
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_OFF          B00000010
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED2          B00000100
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_STOP               B00001000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_START              B00010000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED5          B00100000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CW             B01000000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CCW            B10000000
 
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST B00000001
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1 B00000010
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2 B00000100
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3 B00001000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4 B00010000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED5 B00100000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED6 B01000000
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED7 B10000000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST         B00000001
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1          B00000010
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2          B00000100
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3          B00001000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4          B00010000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED5          B00100000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED6          B01000000
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED7          B10000000
 
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_READY B00000001
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_START B00000010
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_STOP B00000100
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESET B00001000
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED4 B00010000
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED5 B00100000
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED6 B01000000
-#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED7 B10000000
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_READY         B00000001
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_START         B00000010
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_STOP          B00000100
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESET         B00001000
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED4     B00010000
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED5     B00100000
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED6     B01000000
+#define UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESERVED7     B10000000
 
-#define UI_NEXTION_STEP_RETRY_CNT_MAX 3
+#define UI_NEXTION_STEP_RETRY_CNT_MAX                 3
 
-#define UI_NEXTION_STEP_INIT 0
-#define UI_NEXTION_STEP_TODO 1
-#define UI_NEXTION_STEP_TIMEOUT 2
-#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS 3
-#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_START 4
-#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_WAIT 5
-#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_END 6
-#define UI_NEXTION_STEP_DATA_SEND_AP_DAT 7
-#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_START 8
-#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_WAIT 9
-#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_END 10
-#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT 11
-#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_START 12
-#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_WAIT 13
-#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_END 14
-#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT 15
-#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_START 16
-#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_WAIT 17
-#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_END 18
-#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT 19
-#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_START 20
-#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_WAIT 21
-#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_END 22
-#define UI_NEXTION_STEP_DATA_SEND_ALL 23
-#define UI_NEXTION_STEP_DATA_SEND_ALL_START 24
-#define UI_NEXTION_STEP_DATA_SEND_ALL_WAIT 25
-#define UI_NEXTION_STEP_DATA_SEND_ALL_END 26
-#define UI_NEXTION_STEP_DATA_SEND_IO_REG 27
-#define UI_NEXTION_STEP_DATA_SEND_IO_REG_START 28
-#define UI_NEXTION_STEP_DATA_SEND_IO_REG_WAIT 29
-#define UI_NEXTION_STEP_DATA_SEND_IO_REG_END 30
-#define UI_NEXTION_STEP_DATA_SEND_AP_REG 31
-#define UI_NEXTION_STEP_DATA_SEND_AP_REG_START 32
-#define UI_NEXTION_STEP_DATA_SEND_AP_REG_WAIT 33
-#define UI_NEXTION_STEP_DATA_SEND_AP_REG_END 34
-#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT 35
-#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_START 36
-#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_WAIT 37
-#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_END 38
-#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT 39
-#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_START 40
-#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_WAIT 41
-#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_END 42
+#define UI_NEXTION_STEP_INIT                          0
+#define UI_NEXTION_STEP_TODO                          1
+#define UI_NEXTION_STEP_TIMEOUT                       2
+#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS           3
+#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_START     4
+#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_WAIT      5
+#define UI_NEXTION_STEP_DATA_SEND_MOTOR_POS_END       6
+#define UI_NEXTION_STEP_DATA_SEND_AP_DAT              7
+#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_START        8
+#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_WAIT         9
+#define UI_NEXTION_STEP_DATA_SEND_AP_DAT_END          10
+#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT             11
+#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_START       12
+#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_WAIT        13
+#define UI_NEXTION_STEP_DATA_SEND_CYL_DAT_END         14
+#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT             15
+#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_START       16
+#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_WAIT        17
+#define UI_NEXTION_STEP_DATA_SEND_VAC_DAT_END         18
+#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT             19
+#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_START       20
+#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_WAIT        21
+#define UI_NEXTION_STEP_DATA_SEND_SEQ_DAT_END         22
+#define UI_NEXTION_STEP_DATA_SEND_ALL                 23
+#define UI_NEXTION_STEP_DATA_SEND_ALL_START           24
+#define UI_NEXTION_STEP_DATA_SEND_ALL_WAIT            25
+#define UI_NEXTION_STEP_DATA_SEND_ALL_END             26
+#define UI_NEXTION_STEP_DATA_SEND_IO_REG              27
+#define UI_NEXTION_STEP_DATA_SEND_IO_REG_START        28
+#define UI_NEXTION_STEP_DATA_SEND_IO_REG_WAIT         29
+#define UI_NEXTION_STEP_DATA_SEND_IO_REG_END          30
+#define UI_NEXTION_STEP_DATA_SEND_AP_REG              31
+#define UI_NEXTION_STEP_DATA_SEND_AP_REG_START        32
+#define UI_NEXTION_STEP_DATA_SEND_AP_REG_WAIT         33
+#define UI_NEXTION_STEP_DATA_SEND_AP_REG_END          34
+#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT            35
+#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_START      36
+#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_WAIT       37
+#define UI_NEXTION_STEP_DATA_SEND_AXIS_DAT_END        38
+#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT             39
+#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_START       40
+#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_WAIT        41
+#define UI_NEXTION_STEP_DATA_SEND_LOG_DAT_END         42
+#define UI_NEXTION_STEP_WRITE_IO_REG_OUT              43
+#define UI_NEXTION_STEP_WRITE_IO_REG_OUT_START        44
+#define UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT         45
+#define UI_NEXTION_STEP_WRITE_IO_REG_OUT_END          46
+#define UI_NEXTION_STEP_WRITE_MOTOR_DATA              47
+#define UI_NEXTION_STEP_WRITE_MOTOR_DATA_START        48
+#define UI_NEXTION_STEP_WRITE_MOTOR_DATA_WAIT         49
+#define UI_NEXTION_STEP_WRITE_MOTOR_DATA_END          50
+#define UI_NEXTION_STEP_WRITE_AP_CFG                  51
+#define UI_NEXTION_STEP_WRITE_AP_CFG_START            52
+#define UI_NEXTION_STEP_WRITE_AP_CFG_WAIT             53
+#define UI_NEXTION_STEP_WRITE_AP_CFG_END              54
 
-#define UI_NEXTION_STEP_DATA_RECEIVE_CNT_RESET 55
+#define UI_NEXTION_STEP_DATA_RECEIVE_CNT_RESET        99
 
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_MOTOR_POS 0x01
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_AP_DAT 0x02
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_CYL_DAT 0x03
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_VAC_DAT 0x04
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_SEQ_DAT 0x05
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_IO 0x06
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_AP_REG 0x07
-#define UI_NEXTION_CMD_SEND_DATA_TYPE_AXIS_STATE 0x08
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_MOTOR_POS       0x01
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_AP_DAT          0x02
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_CYL_DAT         0x03
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_VAC_DAT         0x04
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_SEQ_DAT         0x05
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_IO              0x06
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_AP_REG          0x07
+#define UI_NEXTION_CMD_SEND_DATA_TYPE_AXIS_STATE      0x08
 #define UI_NEXTION_CMD_SEND_DATA_TYPE_LOG_DATA AP_LOG_DAT_HEADER
 
 // extern uint32_t check_pass_ms;
 
 uiNextionLcd::uiNextionLcd() : m_currPage(nextionpage_t::NEX_PAGE_INIT)
 {
-  // m_pApReg(NULL);
-  // m_pApIo = NULL;
-  // m_msgCnt = 0;
-  // m_pFm = NULL;
-  // m_pAp = NULL;
-  // m_pApAxisDat = NULL;
-  // m_pApCylDat = NULL;
-  // m_pApVacDat = NULL;
-  // m_pApCfgDat = NULL;
-  // m_pApSeqDat = NULL;
-  // m_pAuto = NULL;
-  // m_pLog = NULL;
+  m_pApReg = NULL;
+  m_pApIo = NULL;
+  m_msgCnt = 0;
+  m_pFm = NULL;
+  m_pApAxisDat = NULL;
+  m_pApCylDat = NULL;
+  m_pApVacDat = NULL;
+  m_pApCfgDat = NULL;
+  m_pApSeqDat = NULL;
+  m_pAp = NULL;
+  m_pAuto = NULL;
+  m_pLog = NULL;
+  
   m_IsConnected = false;
   m_pre_time = 0;
   m_step = {};
@@ -129,17 +142,17 @@ int uiNextionLcd::Init(uiNextionLcd::cfg_t *cfg)
   cmdNextion_Init(&m_Packet);
   cmdNextion_Open(&m_Packet, cfg->ch, cfg->baud /*115200*/);
 
-  // m_pApReg = cfg->p_apReg;
-  // m_pApIo = cfg->p_apIo;
-  // m_pFm = cfg->p_Fm;
-  // m_pApAxisDat = cfg->p_apAxisDat;
-  // m_pApCylDat = cfg->p_apCylDat;
-  // m_pApVacDat = cfg->p_apVacDat;
-  // m_pApCfgDat = cfg->p_apCfgDat;
-  // m_pApSeqDat = cfg->p_apSeqDat;
-  // m_pAp = cfg->p_Ap;
-  // m_pAuto = cfg->p_Auto;
-  // m_pLog = cfg->p_Log;
+  m_pApReg = cfg->p_apReg;
+  m_pApIo = cfg->p_apIo;
+  m_pFm = cfg->p_Fm;
+  m_pApAxisDat = cfg->p_apAxisDat;
+  m_pApCylDat = cfg->p_apCylDat;
+  m_pApVacDat = cfg->p_apVacDat;
+  m_pApCfgDat = cfg->p_apCfgDat;
+  m_pApSeqDat = cfg->p_apSeqDat;
+  m_pAp = cfg->p_Ap;
+  m_pAuto = cfg->p_Auto;
+  m_pLog = cfg->p_Log;
   m_step.SetStep(UI_NEXTION_STEP_INIT);
   m_bkCmdLevel = BKCMD_ONLY_FAIL;
 
@@ -257,11 +270,11 @@ void uiNextionLcd::SendDataAll()
 
 void uiNextionLcd::ClearDataAll()
 {
-  // m_pApAxisDat->ClearRomData();
-  // m_pApCylDat->ClearRomData();
-  // m_pApVacDat->ClearRomData();
-  // m_pApSeqDat->ClearRomData();
-  // m_pApCfgDat->ClearRomData();
+  m_pApAxisDat->ClearRomData();
+  m_pApCylDat->ClearRomData();
+  m_pApVacDat->ClearRomData();
+  m_pApSeqDat->ClearRomData();
+  m_pApCfgDat->ClearRomData();
 }
 
 int uiNextionLcd::ChangePage(nextionpage_t page)
@@ -274,8 +287,8 @@ int uiNextionLcd::ChangePage(nextionpage_t page)
 
 void uiNextionLcd::CommRecovery()
 {
-  // cmdNextion_Recovery(&m_Packet);
-  // cmdNextion_SendCmd(&m_Packet,NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE, 0, 0);
+  cmdNextion_Recovery(&m_Packet);
+  cmdNextion_SendCmd(&m_Packet,NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE, 0, 0);
 }
 
 void uiNextionLcd::ProcessCmd()
@@ -294,14 +307,18 @@ void uiNextionLcd::ProcessCmd()
     {
       m_currPage = static_cast<nextionpage_t>(m_Packet.rx_packet.page_no);
     }
+    else
+    {
+      cmdNextion_SendCmd(&m_Packet, NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE, 0, 0);
+    }
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_BEEP:
   {
-    // if (m_pApReg->status[AP_REG_BANK_SETTING][AP_REG_USE_BEEP])
-    // {
-    //   buzzerBeep(1, 5);
-    // }
+    if (m_pApReg->status[AP_REG_BANK_SETTING][AP_REG_USE_BEEP])
+    {
+      buzzerBeep(1, 5);
+    }
   }
   break;
   case NX_LCD_RXCMD_TYPE_CURR_PAGE_NO:
@@ -311,223 +328,157 @@ void uiNextionLcd::ProcessCmd()
   break;
   case NX_LCD_RXCMD_TYPE_WRITE_OUT_REG:
   {
-    // gpioPinWrite(_GPIO_IO_OUT_08, (m_Packet.rx_packet.data[1]&bit7)>>7);
-    // gpioPinWrite(_GPIO_IO_OUT_07, (m_Packet.rx_packet.data[1]&bit6)>>6);
-    // gpioPinWrite(_GPIO_IO_OUT_06, (m_Packet.rx_packet.data[1]&bit5)>>5);
-    // gpioPinWrite(_GPIO_IO_OUT_05, (m_Packet.rx_packet.data[1]&bit4)>>4);
-    // gpioPinWrite(_GPIO_IO_OUT_04, (m_Packet.rx_packet.data[1]&bit3)>>3);
-    // gpioPinWrite(_GPIO_IO_OUT_03, (m_Packet.rx_packet.data[1]&bit2)>>2);
-    // gpioPinWrite(_GPIO_IO_OUT_02, (m_Packet.rx_packet.data[1]&bit1)>>1);
-    // gpioPinWrite(_GPIO_IO_OUT_01, (m_Packet.rx_packet.data[1]&bit0)>>0);
-
-    // uint32_t pass_ms = millis();
-    // while ((m_Packet.rx_packet.data[1] != m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_0)))
-    // {
-    //   if(millis() - pass_ms >= 100)
-    //     break;
-    // }
-
-    // uint8_t data[4] ={0,};
-    // data[3] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_0);
-    // data[2] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_1);
-    // data[1] = m_Packet.rx_packet.data[1];//m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_0);
-    // data[0] = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_1);
-
-    // cmdNextion_SendCmd(&m_Packet, NX_LCD_TXCMD_TYPE_IO_DATA_REG,&data[0], 4);
-    // cmdNextion_SendCmd(&m_Packet,NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE, 0, 0);
+    m_stepBuffer[0] = m_Packet.rx_packet.data[1];
+    
+    m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT);
+    m_pre_time = millis();
   }
   break;
   case NX_LCD_RXCMD_TYPE_UPATE_MCU_REG:
   {
     /* lcd sw key event update */
 
-    // switch (m_Packet.rx_packet.data[0])
-    // {
-    //   case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_READY:
-    //     m_pAuto->UiStarSw();
-    //     break;
+    switch (m_Packet.rx_packet.data[0])
+    {
+     case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_READY:
+       m_pAuto->UiStarSw();
+       break;
 
-    //   case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_START:
-    //     m_pAuto->UiStarSw();
-    //     break;
+     case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_START:
+       m_pAuto->UiStarSw();
+       break;
 
-    //   case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_STOP:
-    //     m_pApReg->SetRunState(AP_REG_AUTO_RUNNING, false);
-    //     m_pAuto->StopSw();
-    //     break;
+     case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_STOP:
+       m_pApReg->SetRunState(AP_REG_AUTO_RUNNING, false);
+       m_pAuto->StopSw();
+       break;
 
-    //   case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESET:
-    //     break;
-    //   default:
-    //     break;
-    // }
+     case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESET:
+       break;
+     default:
+       break;
+    }
   }
   break;
   case NX_LCD_RXCMD_TYPE_CTRL_MOTOR:
   {
-    // switch (m_Packet.rx_packet.data[0])
-    // {
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_ON:
-    //     m_pAp->MotorOnOff(true);
-    //     break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_OFF:
-    //     m_pAp->MotorOnOff(false);
-    //     break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_STOP:
-    //     m_pAp->MotorStop();
-    //     break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_START:
-    //   {
-    //     int ipos;
-    //     ipos = utilDwToInt(&m_Packet.rx_packet.data[4]);
-    //     uint32_t uvel;
-    //     uvel = utilDwToUint(&m_Packet.rx_packet.data[8]);
-    //     m_pFm->Move(ipos,uvel);
-    //   }
-    //   break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CW:
-    //   {
-    //     int ipos;
-    //     ipos = utilDwToInt(&m_Packet.rx_packet.data[4]);
-    //     uint32_t uvel;
-    //     uvel = utilDwToUint(&m_Packet.rx_packet.data[8]);
-    //     m_pFm->JogMove(ipos,uvel,true);
-    //   }
-    //   break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CCW:
-    //   {
-    //     int ipos;
-    //     ipos = utilDwToInt(&m_Packet.rx_packet.data[4]);
-    //     uint32_t uvel;
-    //     uvel = utilDwToUint(&m_Packet.rx_packet.data[8]);
-    //     m_pFm->JogMove(ipos,uvel,false);
+    switch (m_Packet.rx_packet.data[0])
+    {
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_ON:
+       m_pAp->MotorOnOff(true);
+       break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_MOTOR_OFF:
+       m_pAp->MotorOnOff(false);
+       break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_STOP:
+       m_pAp->MotorStop();
+       break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_START:
+     {
+       int pos;
+       pos = utilDwToInt(&m_Packet.rx_packet.data[4]);
+       uint32_t vel;
+       vel = utilDwToUint(&m_Packet.rx_packet.data[8]);
+       m_pAp->MotorRun(pos, vel);
+     }
+     break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CW:
+     {
+       int pos;
+       pos = utilDwToInt(&m_Packet.rx_packet.data[4]);
+       uint32_t vel;
+       vel = utilDwToUint(&m_Packet.rx_packet.data[8]);
+       m_pFm->JogMove(pos,vel,true);
+     }
+     break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CCW:
+     {
+       int pos;
+       pos = utilDwToInt(&m_Packet.rx_packet.data[4]);
+       uint32_t vel;
+       vel = utilDwToUint(&m_Packet.rx_packet.data[8]);
+       m_pFm->JogMove(pos,vel,false);
 
-    //   }
-    //   break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED2:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED5:
-    //   default:
-    //     break;
-    // }
-    // switch (m_Packet.rx_packet.data[1])
-    // {
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST:
-    //     m_pFm->ClearPos();
-    //     break;
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED5:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED6:
-    //   case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED7:
-    //   default:
-    //     break;
-    // }
+     }
+     break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED2:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B0_RESERVED5:
+     default:
+       break;
+    }
+    switch (m_Packet.rx_packet.data[1])
+    {
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST:
+       m_pFm->ClearPos();
+       break;
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED5:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED6:
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED7:
+     default:
+       break;
+    }
   }
   break;
   case NX_LCD_RXCMD_TYPE_SAVE_MOTOR_DATA:
   {
-    // axis_dat::dat_t send_data;
-    // send_data.cmd_pos = utilDwToInt(&m_Packet.rx_packet.data[4]);
-    // send_data.cmd_vel = utilDwToUint(&m_Packet.rx_packet.data[8]);
-    // axis_dat::addr_e addr = static_cast<axis_dat::addr_e>(utilDwToUint(&m_Packet.rx_packet.data[0]));
-    // m_pApAxisDat->WriteData(addr, send_data);
-    // delay(5);
-    // SendMotorData();
+    m_pAp->WriteMotorData(&m_Packet.rx_packet.data[0], 12);    
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_MOTOR_DATA:
   {
-    // SendMotorData();
+    SendMotorData();
   }
   break;
   case NX_LCD_RXCMD_TYPE_SAVE_AP_CFG:
-  {
-    // ap_dat::dat_t send_data;
-    // uint16_t length = m_Packet.rx_packet.length;
-    // uint8_t idx = 0;
-    // for (uint8_t i = 0; i < (length/4); i++)
-    // {
-    //   send_data.parm1 = m_Packet.rx_packet.data[idx+0]|(m_Packet.rx_packet.data[idx+1]<<8);
-    //   send_data.parm2 = m_Packet.rx_packet.data[idx+2]|(m_Packet.rx_packet.data[idx+3]<<8);
-    //   idx =  idx + 4;
-    //   ap_dat::addr_e addr = static_cast<ap_dat::addr_e>(i);
-    //   m_pApCfgDat->WriteData(addr, send_data);
-    //   delay(5);
-    // }
-    // SendApCfgData();
+  {    
+    m_stepBuffer[0] = m_Packet.rx_packet.length;
+    memcpy(&m_stepBuffer[1],&m_Packet.rx_packet.data[0],m_Packet.rx_packet.length);
+    m_pAp->WriteApCfgData(&m_stepBuffer[0], m_Packet.rx_packet.length + 1);    
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_AP_CFG:
   {
-    //  SendApCfgData();
+     SendApCfgData();
   }
   break;
   case NX_LCD_RXCMD_TYPE_SAVE_CYL_DATA:
   {
-    // cyl_dat::dat_t send_data;
-    // uint16_t length = m_Packet.rx_packet.length;
-    // uint8_t idx = 0;
-    // for (uint8_t i = 0; i < (length/4); i++)
-    // {
-    //   send_data.timeout = m_Packet.rx_packet.data[idx+0]|(m_Packet.rx_packet.data[idx+1]<<8);
-    //   send_data.on_settling = m_Packet.rx_packet.data[idx+2]|(m_Packet.rx_packet.data[idx+3]<<8);
-    //   idx =  idx + 4;
-    //   cyl_dat::addr_e addr = static_cast<cyl_dat::addr_e>(i);
-    //   m_pApCylDat->WriteData(addr, send_data);
-    //   delay(5);
-    // }
-    // SendCylinderData();
+    m_stepBuffer[0] = m_Packet.rx_packet.length;
+    memcpy(&m_stepBuffer[1],&m_Packet.rx_packet.data[0],m_Packet.rx_packet.length);
+    m_pAp->WriteCylData(&m_stepBuffer[0], m_Packet.rx_packet.length+1);     
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_CYL_DATA:
   {
-    // SendCylinderData();
+    SendCylinderData();
   }
   break;
   case NX_LCD_RXCMD_TYPE_SAVE_VAC_DATA:
   {
-    // vac_dat::dat_t send_data;
-    // uint16_t length = m_Packet.rx_packet.length;
-    // uint8_t idx = 0;
-    // for (uint8_t i = 0; i < (length/4); i++)
-    // {
-    //   send_data.timeout = m_Packet.rx_packet.data[idx+0]|(m_Packet.rx_packet.data[idx+1]<<8);
-    //   send_data.on_settling = m_Packet.rx_packet.data[idx+2]|(m_Packet.rx_packet.data[idx+3]<<8);
-    //   idx =  idx + 4;
-    //   vac_dat::addr_e addr = static_cast<vac_dat::addr_e>(i);
-    //   m_pApVacDat->WriteData(addr, send_data);
-    //   delay(5);
-    // }
-    // SendVacuumData();
+    m_stepBuffer[0] = m_Packet.rx_packet.length;
+    memcpy(&m_stepBuffer[1],&m_Packet.rx_packet.data[0],m_Packet.rx_packet.length);
+    m_pAp->WriteVacData(&m_stepBuffer[0], m_Packet.rx_packet.length + 1);   
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_VAC_DATA:
   {
-    // SendVacuumData();
+    SendVacuumData();
   }
   break;
   case NX_LCD_RXCMD_TYPE_SAVE_SEQ_DATA:
   {
-    // seq_dat::dat_t send_data;
-    // uint16_t length = m_Packet.rx_packet.length;
-    // uint8_t idx = 0;
-    // for (uint8_t i = 0; i < (length/4); i++)
-    // {
-    //   send_data.parm1 = m_Packet.rx_packet.data[idx+0]|(m_Packet.rx_packet.data[idx+1]<<8);
-    //   send_data.parm2 = m_Packet.rx_packet.data[idx+2]|(m_Packet.rx_packet.data[idx+3]<<8);
-    //   idx =  idx + 4;
-    //   seq_dat::addr_e addr = static_cast<seq_dat::addr_e>(i);
-    //   m_pApSeqDat->WriteData(addr, send_data);
-    //   delay(5);
-    // }
-    // SendSequenceData();
+    m_stepBuffer[0] = m_Packet.rx_packet.length;
+    memcpy(&m_stepBuffer[1],&m_Packet.rx_packet.data[0],m_Packet.rx_packet.length);
+    m_pAp->WriteSeqData(&m_stepBuffer[0], m_Packet.rx_packet.length); 
   }
   break;
   case NX_LCD_RXCMD_TYPE_REQ_SEQ_DATA:
   {
-    // SendSequenceData();
+    SendSequenceData();
   }
   break;
   default:
@@ -602,15 +553,15 @@ void uiNextionLcd::doRunStep()
 
     memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_MOTOR_POS;
-    // axis_dat::dat_t data;
-    // data = m_pApAxisDat->ReadData(axis_dat::addr_e::ready_pos);
-    // memcpy(&m_stepBuffer[1], (uint8_t*)&data, 8);
-    // data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_0);
-    // memcpy(&m_stepBuffer[9], (uint8_t*)&data, 8);
-    // data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_1);
-    // memcpy(&m_stepBuffer[17], (uint8_t*)&data, 8);
-    // data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_2);
-    // memcpy(&m_stepBuffer[25], (uint8_t*)&data, 8);
+    axis_dat::dat_t data;
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::ready_pos);
+    memcpy(&m_stepBuffer[1], (uint8_t*)&data, 8);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_0);
+    memcpy(&m_stepBuffer[9], (uint8_t*)&data, 8);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_1);
+    memcpy(&m_stepBuffer[17], (uint8_t*)&data, 8);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_2);
+    memcpy(&m_stepBuffer[25], (uint8_t*)&data, 8);
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -678,16 +629,14 @@ void uiNextionLcd::doRunStep()
     if (millis() - m_pre_time < 5)
       break;
 
-    memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
+    memset(&m_stepBuffer, 0, UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_AP_DAT;
-    // ap_dat::dat_t data;
-    ////data = m_pApCfgDat->ReadData(ap_dat::addr_e::ap_mot_cfg);
-    ////memcpy(&m_stepBuffer[1], (uint8_t*)&data, 4);
-    // for (uint8_t i = 0; i < static_cast<uint8_t>(ap_dat::addr_e::_max); i++)
-    //{
-    //   data = m_pApCfgDat->ReadData(static_cast<ap_dat::addr_e>(i));
-    //   memcpy(&m_stepBuffer[(1 + i * 4)%UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t*)&data, 4);
-    // }
+    ap_dat::dat_t data;
+    for (uint8_t i = 0; i < static_cast<uint8_t>(ap_dat::addr_e::_max); i++)
+    {
+      data = m_pApCfgDat->ReadData(static_cast<ap_dat::addr_e>(i));
+      memcpy(&m_stepBuffer[(1 + i * 4) % UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t *)&data, 4);
+    }
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -754,12 +703,12 @@ void uiNextionLcd::doRunStep()
 
     memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_CYL_DAT;
-    // cyl_dat::dat_t data;
-    // for (uint8_t i = 0; i < static_cast<uint8_t>(cyl_dat::addr_e::_max); i++)
-    //{
-    //   data = m_pApCylDat->ReadData(static_cast<cyl_dat::addr_e>(i));
-    //   memcpy(&m_stepBuffer[(1 + i * 4)%UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t*)&data, 4);
-    // }
+    cyl_dat::dat_t data;
+    for (uint8_t i = 0; i < static_cast<uint8_t>(cyl_dat::addr_e::_max); i++)
+    {
+      data = m_pApCylDat->ReadData(static_cast<cyl_dat::addr_e>(i));
+      memcpy(&m_stepBuffer[(1 + i * 4) % UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t *)&data, 4);
+    }
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -826,12 +775,12 @@ void uiNextionLcd::doRunStep()
 
     memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_VAC_DAT;
-    // vac_dat::dat_t data;
-    // for (uint8_t i = 0; i < static_cast<uint8_t>(vac_dat::addr_e::_max); i++)
-    //{
-    //   data = m_pApVacDat->ReadData(static_cast<vac_dat::addr_e>(i));
-    //   memcpy(&m_stepBuffer[(1 + i * 4)%UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t*)&data, 4);
-    // }
+    vac_dat::dat_t data;
+    for (uint8_t i = 0; i < static_cast<uint8_t>(vac_dat::addr_e::_max); i++)
+    {
+      data = m_pApVacDat->ReadData(static_cast<vac_dat::addr_e>(i));
+      memcpy(&m_stepBuffer[(1 + i * 4) % UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t *)&data, 4);
+    }
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -898,14 +847,14 @@ void uiNextionLcd::doRunStep()
       break;
     }
 
-    memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
+    memset(&m_stepBuffer, 0, UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_SEQ_DAT;
-    // seq_dat::dat_t data;
-    // for (uint8_t i = 0; i < static_cast<uint8_t>(seq_dat::addr_e::_max); i++)
-    //{
-    //   data = m_pApSeqDat->ReadData(static_cast<seq_dat::addr_e>(i));
-    //   memcpy(&m_stepBuffer[(1 + i * 4)%UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t*)&data, 4);
-    // }
+    seq_dat::dat_t data;
+    for (uint8_t i = 0; i < static_cast<uint8_t>(seq_dat::addr_e::_max); i++)
+    {
+      data = m_pApSeqDat->ReadData(static_cast<seq_dat::addr_e>(i));
+      memcpy(&m_stepBuffer[(1 + i * 4) % UI_NEXTION_MAX_BUFFER_LENGTH], (uint8_t *)&data, 4);
+    }
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -1119,10 +1068,10 @@ void uiNextionLcd::doRunStep()
     memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_IO;
 
-    // m_stepBuffer[4] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_0);
-    // m_stepBuffer[3] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_1);
-    // m_stepBuffer[2] = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_0);
-    // m_stepBuffer[1] = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_1);
+    m_stepBuffer[4] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_0);
+    m_stepBuffer[3] = m_pApIo->GetBank_In(AP_IO_DEF_BANK_NO_1);
+    m_stepBuffer[2] = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_0);
+    m_stepBuffer[1] = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_NO_1);
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -1187,10 +1136,10 @@ void uiNextionLcd::doRunStep()
     memset(&m_stepBuffer,0,UI_NEXTION_MAX_BUFFER_LENGTH);
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_AP_REG;
 
-    // m_stepBuffer[1] = m_pApReg->status[AP_REG_BANK_ERR_H].get();
-    // m_stepBuffer[2] = m_pApReg->status[AP_REG_BANK_ERR_L].get();
-    // m_stepBuffer[3] = m_pApReg->status[AP_REG_BANK_SETTING].get();
-    // m_stepBuffer[4] = m_pApReg->status[AP_REG_BANK_RUN_STATE].get();
+    m_stepBuffer[1] = m_pApReg->status[AP_REG_BANK_ERR_H].get();
+    m_stepBuffer[2] = m_pApReg->status[AP_REG_BANK_ERR_L].get();
+    m_stepBuffer[3] = m_pApReg->status[AP_REG_BANK_SETTING].get();
+    m_stepBuffer[4] = m_pApReg->status[AP_REG_BANK_RUN_STATE].get();
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -1284,16 +1233,16 @@ void uiNextionLcd::doRunStep()
     m_stepBuffer[0] = UI_NEXTION_CMD_SEND_DATA_TYPE_AXIS_STATE;
 
     // act pos/ vel data
-    // int pos = m_pFm->m_AxisState.act_pos;
-    // memcpy(&m_stepBuffer[1], (uint8_t*)&pos, 4);
-    // pos = m_pFm->m_AxisState.act_vel;
-    // memcpy(&m_stepBuffer[5], (uint8_t*)&pos, 4);
+    int pos = m_pFm->m_AxisState.act_pos;
+    memcpy(&m_stepBuffer[1], (uint8_t*)&pos, 4);
+    pos = m_pFm->m_AxisState.act_vel;
+    memcpy(&m_stepBuffer[5], (uint8_t*)&pos, 4);
 
     // ap_reg data
-    // m_stepBuffer[9] = m_pApReg->status[AP_REG_BANK_ERR_H].get();
-    // m_stepBuffer[10] = m_pApReg->status[AP_REG_BANK_ERR_L].get();
-    // m_stepBuffer[11] = m_pApReg->status[AP_REG_BANK_SETTING].get();
-    // m_stepBuffer[12] = m_pApReg->status[AP_REG_BANK_RUN_STATE].get();
+    m_stepBuffer[9] = m_pApReg->status[AP_REG_BANK_ERR_H].get();
+    m_stepBuffer[10] = m_pApReg->status[AP_REG_BANK_ERR_L].get();
+    m_stepBuffer[11] = m_pApReg->status[AP_REG_BANK_SETTING].get();
+    m_stepBuffer[12] = m_pApReg->status[AP_REG_BANK_RUN_STATE].get();
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
     m_IsRespCplt = false;
@@ -1406,6 +1355,62 @@ void uiNextionLcd::doRunStep()
     m_pre_time = millis();
   }
   break;
+
+  /*######################################################
+    UI_NEXTION_STEP_WRITE_IO_REG_OUT
+    ######################################################*/
+  case UI_NEXTION_STEP_WRITE_IO_REG_OUT:
+  {
+    m_retryCnt = 0;
+    m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_START);
+    m_pre_time = millis();
+  }
+  break;
+  case UI_NEXTION_STEP_WRITE_IO_REG_OUT_START:
+  {
+
+    // cmdNextion_SendData(&m_Packet, 0, 0,/*(uint8_t*)&log_dat*/m_pLog->Get() , APDAT_LOG_DATA_LENGTH);
+    m_pApIo->SetBank_Out(AP_IO_DEF_BANK_OUT_0, m_stepBuffer[0]);
+    m_IsRespCplt = false;
+    m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT);
+    m_pre_time = millis();
+  }
+  break;
+  case UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT:
+  {
+    if (millis() - m_pre_time >= 50)
+    {
+      if (m_retryCnt++ < UI_NEXTION_STEP_RETRY_CNT_MAX)
+      {
+        m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_START);
+        m_pre_time = millis();
+      }
+      else
+      {
+        m_retryCnt = 0;
+        m_step.SetStep(UI_NEXTION_STEP_TIMEOUT);
+        m_pre_time = millis();
+      }
+    }
+
+    bool is_equal = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_0) == m_stepBuffer[0];
+    if (is_equal)
+    {
+      m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_END);
+      m_pre_time = millis();
+    }
+  }
+  break;
+  case UI_NEXTION_STEP_WRITE_IO_REG_OUT_END:
+  {
+    //if (millis() - m_pre_time < 5)
+    //  break;
+
+    m_step.SetStep(UI_NEXTION_STEP_TODO);
+    m_pre_time = millis();
+  }
+  break;
+
   /*######################################################
      UI_NEXTION_STEP_DATA_RECEIVE_CNT_RESET
     ######################################################*/
@@ -1427,13 +1432,13 @@ void uiNextionLcd::doRunStep()
 
 void uiNextionLcd::LcdUpdate()
 {
-  // if (m_pApReg->IsAutoReadyMode() || m_pApReg->IsAutoRunning())
-  // {
-  //   if (m_currPage != nextionpage_t::NEX_PAGE_MAIN)
-  //   {
-  //     ChangePage(nextionpage_t::NEX_PAGE_MAIN);
-  //   }
-  // }
+  if (m_pApReg->IsAutoReadyMode() || m_pApReg->IsAutoRunning())
+  {
+    if (m_currPage != nextionpage_t::NEX_PAGE_MAIN)
+    {
+      ChangePage(nextionpage_t::NEX_PAGE_MAIN);
+    }
+  }
 
   switch (m_currPage)
   {

@@ -194,6 +194,8 @@ enum class reg_ {
   _max
 };
 
+#define REG_BIT(x)          static_cast<reg_>(x)
+
 class _Regist {
   class _elem {
     bool m_bit[static_cast<uint8_t>(reg_::_max)];

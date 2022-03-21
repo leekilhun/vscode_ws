@@ -23,35 +23,35 @@ class uiNextionLcd
   };
 public:
   struct cfg_t  {
-    // Ap_reg* p_apReg;
-    // IIO* p_apIo;
-    // axis_dat* p_apAxisDat;
-    // cyl_dat* p_apCylDat;
-    // vac_dat* p_apVacDat;
-    // ap_dat* p_apCfgDat;
-    // seq_dat* p_apSeqDat;
-    // enFastechMotor* p_Fm;
-    // cnProcess* p_Ap;
-    // cnAutoManager* p_Auto;
-    // ap_log* p_Log;
+    Ap_reg *p_apReg;
+    IIO *p_apIo;
+    axis_dat *p_apAxisDat;
+    cyl_dat *p_apCylDat;
+    vac_dat *p_apVacDat;
+    ap_dat *p_apCfgDat;
+    seq_dat *p_apSeqDat;
+    enFastechMotor *p_Fm;
+    cnProcess* p_Ap;
+    cnAutoManager* p_Auto;
+    ap_log *p_Log;
     uint8_t ch;
     uint32_t baud;
   };
 
 private:
   nextionpage_t m_currPage;
-  // enFastechMotor* m_pFm;
-  // cnProcess* m_pAp;
-  // cnAutoManager* m_pAuto;
-  // Ap_reg*       m_pApReg;
-  // ap_log* m_pLog;
-  // IIO* m_pApIo;
-  // axis_dat* m_pApAxisDat;
-  // cyl_dat* m_pApCylDat;
-  // vac_dat* m_pApVacDat;
-  // ap_dat* m_pApCfgDat;
-  // seq_dat* m_pApSeqDat;
-  uint8_t       m_msgCnt;
+  enFastechMotor* m_pFm;
+  cnProcess* m_pAp;
+  cnAutoManager* m_pAuto;
+  Ap_reg*       m_pApReg;
+  ap_log* m_pLog;
+  IIO* m_pApIo;
+  axis_dat* m_pApAxisDat;
+  cyl_dat* m_pApCylDat;
+  vac_dat* m_pApVacDat;
+  ap_dat* m_pApCfgDat;
+  seq_dat* m_pApSeqDat;
+  uint8_t  m_msgCnt;
   bkCmdLevel m_bkCmdLevel;
 
 public:

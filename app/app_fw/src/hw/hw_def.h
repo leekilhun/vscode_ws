@@ -89,6 +89,7 @@
 
 //#define _USE_HW_CMD
 
+#define _USE_HW_CMD_ROBOTRO
 #define _USE_HW_CMD_FASTECH
 
 #define _USE_HW_CMD_NEXTION
