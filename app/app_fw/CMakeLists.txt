@@ -72,7 +72,7 @@ target_compile_options(${EXECUTABLE} PRIVATE
   -ffunction-sections
   -Wall
 
-  -O1
+  -O0
   )
 
 
