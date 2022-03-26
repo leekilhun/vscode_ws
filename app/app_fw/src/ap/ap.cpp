@@ -14,6 +14,8 @@ static void threadEvent(void const *argument);
 #define AP_DEF_ERROR_CNT_MAX 10
 uint16_t refresh_time = 1000;
 uint8_t errCnt = 0;
+uint8_t lcd_errCnt = 0;
+uint8_t fm_errCnt = 0;
 uint32_t lamp_ms = 0;
 
 void updateApReg();
@@ -38,7 +40,7 @@ ap_log mcu_log;
 // engine layer (물리 계층)
 enFastechMotor fastech_motor(AP_DEF_OBJ_MOTOR_ID_0);
 enCylinder cyl[AP_DEF_OBJ_CYLINDER_ID_MAX];
-enVacuum vac_0;
+enVacuum vac[AP_DEF_OBJ_VACUUM_ID_MAX];
 
 // control  (로직 계층)
 cnAutoManager autoManager;
@@ -118,7 +120,7 @@ void apInit(void)
   vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_on);
   vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_off);
 
-  vac_0.SetConfigData(&vac_cfg);
+  vac[AP_DEF_OBJ_VACUUM_ID_PHONE_JIG].SetConfigData(&vac_cfg);
 
   cnProcess::cfg_t prc_cfg = {0,};
   prc_cfg.p_apReg = &mcu_reg;
@@ -193,7 +195,10 @@ void apMain(void)
   // mcu_log.apLogWrite(head_inf,"write contents id[%d]",5);
   // mcu_log.apLogWrite(head_inf,"error log id[%d]",5);
   /****************************/
+  mcu_reg.status[AP_REG_BANK_SETTING][AP_REG_USE_BEEP] = true;
+  /****************************/
 
+  /****************************/
   /*Assign Obj */
   mcu_io.assignObj((IIO *)&fastech_motor);
 
@@ -250,12 +255,12 @@ void threadCmdLcd(void const *argument)
 {
   UNUSED(argument);
 
-  uint8_t err_cnt = 0;
   uint32_t pre_cmd_lcd_ms = millis();
   while (1)
   {
     if (cmdNextion_ReceivePacket(&nextion_lcd.m_Packet))
     {
+      lcd_errCnt = 0;
       nextion_lcd.m_IsConnected = true;
       mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = false;
       nextion_lcd.ProcessCmd();
@@ -270,11 +275,11 @@ void threadCmdLcd(void const *argument)
       {
         nextion_lcd.m_IsConnected = false;
         nextion_lcd.LcdUpdate();
-        err_cnt = 0;
+        lcd_errCnt = 0;
       }
-      else if (err_cnt > 30)
+      else if (lcd_errCnt > 30)
       {
-        err_cnt = 0;
+        lcd_errCnt = 0;
         nextion_lcd.CommRecovery();
         nextion_lcd.m_IsConnected = true;
         mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_LCD] = true;
@@ -282,7 +287,7 @@ void threadCmdLcd(void const *argument)
       else
       {
         nextion_lcd.LcdUpdate();
-        err_cnt++;
+        lcd_errCnt++;
       }
     }
   }
@@ -295,11 +300,11 @@ void threadCmdFastechMotor(void const *argument)
 {
   UNUSED(argument);
   uint32_t pre_cmd_fm_ms = millis();
-  uint8_t  err_cnt = 0;
   while (1)
   {
     if (cmdFastech_ReceivePacket(&fastech_motor.m_Packet))
     {
+      fm_errCnt = 0;
       fastech_motor.m_IsConnected = true;
       mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT] = false;
       
@@ -314,11 +319,11 @@ void threadCmdFastechMotor(void const *argument)
       {
         fastech_motor.m_IsConnected = false;
         fastech_motor.SendGetAllStatus();
-        err_cnt = 0;
+        fm_errCnt = 0;
       }
-      else if (err_cnt > 30)
+      else if (fm_errCnt > 30)
       {
-        err_cnt = 0;
+        fm_errCnt = 0;
         fastech_motor.CommRecovery();
         fastech_motor.m_IsConnected = true;
         mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT] = true;
@@ -326,7 +331,7 @@ void threadCmdFastechMotor(void const *argument)
       else
       {
         fastech_motor.SendGetAllStatus();
-        err_cnt++;
+        fm_errCnt++;
       }
     }
   }

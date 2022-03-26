@@ -20,6 +20,14 @@
 #define UI_REMOTECTRL_CMD_CONTROL_MOT_RUN         0x13
 #define UI_REMOTECTRL_CMD_CONTROL_MOT_STOP        0x14
 #define UI_REMOTECTRL_CMD_AP_CONFIG_WRITE         0x20
+#define UI_REMOTECTRL_CMD_READ_MCU_DATA           0x21
+#define UI_REMOTECTRL_CMD_WRITE_MOTOR_POS_DATA    0x30
+#define UI_REMOTECTRL_CMD_WRITE_AP_DATA           0x31
+#define UI_REMOTECTRL_CMD_WRITE_CYL_DATA          0x32
+#define UI_REMOTECTRL_CMD_WRITE_VAC_DATA          0x33
+#define UI_REMOTECTRL_CMD_WRITE_SEQ_DATA          0x34
+
+#define UI_REMOTECTRL_CMD_OK_RESPONSE             0xAA
 
 
 #define UI_REMOTECTRL_ERR_WRONG_CMD               0x01
@@ -64,8 +72,33 @@
 #define UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_START        28
 #define UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_WAIT         29
 #define UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_END          30
+#define UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA              31
+#define UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START        32
+#define UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT         33
+#define UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_END          34
+#define UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS             35
+#define UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_START       36
+#define UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_WAIT        37
+#define UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_END         38
+#define UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT                39
+#define UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_START          40
+#define UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_WAIT           41
+#define UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_END            42
+#define UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT               43
+#define UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_START         44
+#define UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_WAIT          45
+#define UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_END           46
+#define UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT               47
+#define UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_START         48
+#define UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_WAIT          49
+#define UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_END           50
+#define UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT               51
+#define UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_START         52
+#define UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_WAIT          53
+#define UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_END           54
 
-
+#define UI_REMOTECTRL_WAIT_TIMEOUT                         100
+#define UI_REMOTECTRL_MOTOR_MOVE_TIMEOUT                   1000*2
 
 uiRemoteCtrl::uiRemoteCtrl ()
 {
@@ -85,6 +118,7 @@ uiRemoteCtrl::uiRemoteCtrl ()
   m_step = {};
   m_IsRespCplt= true;
   m_retryCnt = 0;
+  m_lockSendMsg = false;
 }
 
 uiRemoteCtrl::~uiRemoteCtrl ()
@@ -116,12 +150,12 @@ void uiRemoteCtrl::ProcessCmd()
 {
   switch(m_Packet.rx_packet.cmd_type)
   {
+    case UI_REMOTECTRL_CMD_OK_RESPONSE:
+      break;
+
     case UI_REMOTECTRL_CMD_READ_ALL_STATE:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
         m_step.SetStep(UI_REMOTECTRL_STEP_SEND_MCU_ALL_DATA);
-      }
+        m_pre_time = millis();
       break;
 
     case UI_REMOTECTRL_CMD_READ_BOOT_INFO:
@@ -131,46 +165,61 @@ void uiRemoteCtrl::ProcessCmd()
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_IO_OUT:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
-        m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT);
-      }
+      m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT);
+      m_pre_time = millis();
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_MOT_ORIGIN:
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_MOT_ONOFF:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
-        m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF);
-      }
+      m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF);
+      m_pre_time = millis();
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_MOT_RUN:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
-        m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_RUN);
-      }
+      m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_RUN);
+      m_pre_time = millis();
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_MOT_STOP:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
-        m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_STOP);
-      }
+      m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_STOP);
+      m_pre_time = millis();
       break;
 
     case UI_REMOTECTRL_CMD_AP_CONFIG_WRITE:
-      if (m_step.GetStep() == UI_REMOTECTRL_STEP_TODO)
-      {
-        m_pre_time = millis();
-        m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE);
-      }
+      m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE);
+      m_pre_time = millis();
+      break;
+
+    case UI_REMOTECTRL_CMD_READ_MCU_DATA:
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA);
+      m_pre_time = millis();
+      break;
+
+    case UI_REMOTECTRL_CMD_WRITE_MOTOR_POS_DATA:
+      m_pAp->WriteMotorData(&m_Packet.rx_packet.data[0], m_Packet.rx_packet.length);
+      okResponse();
+      break;
+
+    case UI_REMOTECTRL_CMD_WRITE_AP_DATA:
+      m_pAp->WriteApCfgData(&m_Packet.rx_packet.data[0], m_Packet.rx_packet.length);
+      okResponse();
+      break;
+
+    case UI_REMOTECTRL_CMD_WRITE_CYL_DATA:
+      m_pAp->WriteCylData(&m_Packet.rx_packet.data[0], m_Packet.rx_packet.length);
+      okResponse();
+      break;
+
+    case UI_REMOTECTRL_CMD_WRITE_VAC_DATA:
+      m_pAp->WriteVacData(&m_Packet.rx_packet.data[0], m_Packet.rx_packet.length);
+      okResponse();
+      break;
+
+    case UI_REMOTECTRL_CMD_WRITE_SEQ_DATA :
+      m_pAp->WriteSeqData(&m_Packet.rx_packet.data[0], m_Packet.rx_packet.length);
+      okResponse();
       break;
 
     default:
@@ -181,6 +230,9 @@ void uiRemoteCtrl::ProcessCmd()
 
 void uiRemoteCtrl::SendAllState()
 {
+  if (m_lockSendMsg)
+    return;
+
   memset(&m_stepBuffer[0],0,UI_REMOTECTRL_MAX_BUFFER_LENGTH);
 
   m_stepBuffer[0] = m_pApReg->status[(const int)AP_REG_BANK_ERR_H];
@@ -234,6 +286,10 @@ void uiRemoteCtrl::CommRecovery()
   uartOpen(m_Packet.ch,m_Packet.baud);
 }
 
+void uiRemoteCtrl::okResponse()
+{
+  cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_OK_RESPONSE, 0, 0);
+}
 
 bool uiRemoteCtrl::ThreadJob()
 {
@@ -272,6 +328,7 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_TODO:
     {
       m_IsRespCplt=true;
+      m_lockSendMsg = false;
       m_retryCnt = 0;
     }
     break;
@@ -284,7 +341,6 @@ void uiRemoteCtrl::doRunStep()
       {
         break;
       }
-      m_retryCnt = 0;
       m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
     }
     break;
@@ -294,6 +350,7 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_SEND_MCU_ALL_DATA:
     {
       m_retryCnt = 0;
+      m_lockSendMsg = true;
       m_step.SetStep(UI_REMOTECTRL_STEP_SEND_MCU_ALL_DATA_START);
       m_pre_time = millis();
     }
@@ -345,6 +402,7 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_CTRL_IO_OUT:
     {
       m_retryCnt = 0;
+      m_lockSendMsg = true;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT_START);
       m_pre_time = millis();
     }
@@ -359,8 +417,6 @@ void uiRemoteCtrl::doRunStep()
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_2,m_Packet.rx_packet.data[2]);
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_3,m_Packet.rx_packet.data[3]);
       }
-
-      m_IsRespCplt=false;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT_WAIT);
       m_pre_time = millis();
 
@@ -382,7 +438,12 @@ void uiRemoteCtrl::doRunStep()
           m_pre_time = millis();
         }
       }
-      if(m_IsRespCplt)
+
+      bool is_equal = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_0) == m_Packet.rx_packet.data[0];
+      is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_1) == m_Packet.rx_packet.data[1];
+      is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_2) == m_Packet.rx_packet.data[2];
+      is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_3) == m_Packet.rx_packet.data[3];
+      if (is_equal)
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT_END);
         m_pre_time = millis();
@@ -402,6 +463,7 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF:
     {
       m_retryCnt = 0;
+      m_lockSendMsg = true;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF_START);
       m_pre_time = millis();
     }
@@ -414,7 +476,6 @@ void uiRemoteCtrl::doRunStep()
         m_pAp->MotorOnOff((bool)m_Packet.rx_packet.data[0]);
       }
 
-      m_IsRespCplt=false;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF_WAIT);
       m_pre_time = millis();
 
@@ -436,7 +497,9 @@ void uiRemoteCtrl::doRunStep()
           m_pre_time = millis();
         }
       }
-      if(m_IsRespCplt)
+
+      bool is_equal = m_pAp->IsMotorOn() == (bool)m_Packet.rx_packet.data[0];
+      if(is_equal)
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_ONOFF_END);
         m_pre_time = millis();
@@ -477,7 +540,15 @@ void uiRemoteCtrl::doRunStep()
         m_pAp->MotorRun(cmd_pos, cmd_vel, acc, decel);
       }
 
-      m_IsRespCplt=false;
+      uint32_t pre_ms = millis();
+      while (!m_pAp->IsMotorRun())
+      {
+        if (millis() - pre_ms >= UI_REMOTECTRL_WAIT_TIMEOUT)
+        {
+
+          break;
+        }
+      }
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_RUN_WAIT);
       m_pre_time = millis();
 
@@ -485,21 +556,15 @@ void uiRemoteCtrl::doRunStep()
     break;
     case UI_REMOTECTRL_STEP_CTRL_AXIS_RUN_WAIT:
     {
-      if (millis()-m_pre_time >= 50)
+      if (millis()-m_pre_time >= UI_REMOTECTRL_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_RUN_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_pre_time = millis();
-          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
-        }
+
+        m_pre_time = millis();
+        m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+
       }
-      if(m_IsRespCplt)
+
+      if(m_pAp->IsMotorMoveCplt())
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_RUN_END);
         m_pre_time = millis();
@@ -519,9 +584,9 @@ void uiRemoteCtrl::doRunStep()
       ######################################################*/
     case UI_REMOTECTRL_STEP_CTRL_AXIS_STOP:
     {
-      m_pre_time = millis();
       m_retryCnt = 0;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_STOP_START);
+      m_pre_time = millis();
     }
     break;
     case UI_REMOTECTRL_STEP_CTRL_AXIS_STOP_START:
@@ -529,7 +594,6 @@ void uiRemoteCtrl::doRunStep()
       /* io control*/
       m_pAp->MotorStop();
 
-      m_IsRespCplt=false;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AXIS_STOP_WAIT);
       m_pre_time = millis();
 
@@ -551,7 +615,7 @@ void uiRemoteCtrl::doRunStep()
           m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
         }
       }
-      if(m_IsRespCplt)
+      if(m_pAp->IsMotorMoveCplt())
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
         m_pre_time = millis();
@@ -572,6 +636,7 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE:
     {
       m_retryCnt = 0;
+      m_lockSendMsg = true;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_START);
       m_pre_time = millis();
     }
@@ -583,8 +648,6 @@ void uiRemoteCtrl::doRunStep()
       {
         m_pApReg->SetConfReg(m_Packet.rx_packet.data[0]);
       }
-
-      m_IsRespCplt=false;
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_WAIT);
       m_pre_time = millis();
 
@@ -606,7 +669,8 @@ void uiRemoteCtrl::doRunStep()
           m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
         }
       }
-      if(m_IsRespCplt)
+      bool is_equal = m_pApReg->status[AP_REG_BANK_SETTING].get() == m_Packet.rx_packet.data[0];
+      if(is_equal)
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_AP_CONF_WRITE_END);
         m_pre_time = millis();
@@ -620,6 +684,443 @@ void uiRemoteCtrl::doRunStep()
       m_pre_time = millis();
     }
     break;
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA:
+    {
+      m_retryCnt = 0;
+
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START);
+      /*write data id*/
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA;
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START:
+    {
+      /*
+       tx order
+      1. motor (start)
+      2. ap data
+      3. cylinder data
+      4. vacuum data
+      5. sequence data (end)
+       */
+      m_IsRespCplt=false;
+      switch (m_stepBuffer[0])
+      {
+        case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_START);
+          break;
+
+        case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_START);
+          break;
+
+        case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_START);
+          break;
+
+        case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_START);
+          break;
+
+        case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_END);
+          break;
+
+        case UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA:
+        default:
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_START);
+          break;
+      }
+      m_pre_time = millis();
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        switch (m_stepBuffer[0])
+        {
+          case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS:
+          case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT:
+          case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT:
+          case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT:
+            m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START);
+            break;
+
+          case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT:
+          default:
+            m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_END);
+            break;
+        }
+        m_pre_time = millis();
+      }
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_END:
+    {
+      m_lockSendMsg = false;
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS:
+    {
+      m_retryCnt = 0;
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_START);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_START:
+    {
+      /*  */
+      memset(&m_stepBuffer, 0, UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS;
+
+      axis_dat::dat_t data;
+      uint32_t length =  sizeof(axis_dat::dat_t);
+      uint32_t index = 0;
+      data = m_pApAxisDat->ReadData(axis_dat::addr_e::ready_pos);
+      memcpy(&m_stepBuffer[1 + (index++ * length)], (uint8_t*)&data, length);
+      data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_0);
+      memcpy(&m_stepBuffer[1 + (index++ * length)], (uint8_t*)&data, length);
+      data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_1);
+      memcpy(&m_stepBuffer[1 + (index++ * length)], (uint8_t*)&data, length);
+      data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_2);
+      memcpy(&m_stepBuffer[1 + (index++ * length)], (uint8_t*)&data, length);
+
+      cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_READ_MCU_DATA, &m_stepBuffer[0], (1 + (index * length)));
+
+
+      m_IsRespCplt=false;
+      if (m_step.pre_step == UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START)
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT);
+      else
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_WAIT);
+
+      m_pre_time = millis();
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_MOTOR_POS_END:
+    {
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT:
+    {
+      m_retryCnt = 0;
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_START);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_START:
+    {
+      /*  */
+      memset(&m_stepBuffer, 0, UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT;
+
+      ap_dat::dat_t data;
+      uint32_t length =  sizeof(ap_dat::dat_t);
+      for (uint8_t i = 0; i < static_cast<uint8_t>(ap_dat::addr_e::_max); i++)
+      {
+        data = m_pApCfgDat->ReadData(static_cast<ap_dat::addr_e>(i));
+        memcpy(&m_stepBuffer[(1 + (i * length)) % UI_REMOTECTRL_MAX_BUFFER_LENGTH], (uint8_t *)&data, length);
+      }
+
+      cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_READ_MCU_DATA, &m_stepBuffer[0], UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+
+      m_IsRespCplt=false;
+      if (m_step.pre_step == UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START)
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT);
+      else
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_WAIT);
+      m_pre_time = millis();
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_AP_DAT_END:
+    {
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT:
+    {
+      m_retryCnt = 0;
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_START);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_START:
+    {
+      /*  */
+      memset(&m_stepBuffer, 0, UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT;
+
+      cyl_dat::dat_t data;
+      uint32_t length =  sizeof(cyl_dat::dat_t);
+      for (uint8_t i = 0; i < static_cast<uint8_t>(cyl_dat::addr_e::_max); i++)
+      {
+        data = m_pApCylDat->ReadData(static_cast<cyl_dat::addr_e>(i));
+        memcpy(&m_stepBuffer[(1 + (i * length)) % UI_REMOTECTRL_MAX_BUFFER_LENGTH], (uint8_t *)&data, length);
+      }
+
+      cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_READ_MCU_DATA, &m_stepBuffer[0], UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+
+      m_IsRespCplt=false;
+      if (m_step.pre_step == UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START)
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT);
+      else
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_WAIT);
+
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_CYL_DAT_END:
+    {
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT:
+    {
+      m_retryCnt = 0;
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_START);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_START:
+    {
+      /*  */
+      memset(&m_stepBuffer, 0, UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT;
+
+      vac_dat::dat_t data;
+      uint32_t length =  sizeof(vac_dat::dat_t);
+      for (uint8_t i = 0; i < static_cast<uint8_t>(vac_dat::addr_e::_max); i++)
+      {
+        data = m_pApVacDat->ReadData(static_cast<vac_dat::addr_e>(i));
+        memcpy(&m_stepBuffer[(1 + (i * length)) % UI_REMOTECTRL_MAX_BUFFER_LENGTH], (uint8_t *)&data, length);
+      }
+
+      cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_READ_MCU_DATA, &m_stepBuffer[0], UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+
+      m_IsRespCplt=false;
+      if (m_step.pre_step == UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START)
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT);
+      else
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_WAIT);
+
+      m_pre_time = millis();
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_VAC_DAT_END:
+    {
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+    /*######################################################
+       UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT
+      ######################################################*/
+    case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT:
+    {
+      m_retryCnt = 0;
+      m_lockSendMsg = true;
+      m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_START);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_START:
+    {
+      /*  */
+      memset(&m_stepBuffer, 0, UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+      m_stepBuffer[0] = UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT;
+
+      seq_dat::dat_t data;
+      uint32_t length =  sizeof(seq_dat::dat_t);
+      for (uint8_t i = 0; i < static_cast<uint8_t>(seq_dat::addr_e::_max); i++)
+      {
+        data = m_pApSeqDat->ReadData(static_cast<seq_dat::addr_e>(i));
+        memcpy(&m_stepBuffer[(1 + (i * length)) % UI_REMOTECTRL_MAX_BUFFER_LENGTH], (uint8_t *)&data, length);
+      }
+
+      cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_READ_MCU_DATA, &m_stepBuffer[0], UI_REMOTECTRL_MAX_BUFFER_LENGTH);
+
+      m_IsRespCplt=false;
+      if (m_step.pre_step == UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_START)
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_ALL_DATA_WAIT);
+      else
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_WAIT);
+      m_pre_time = millis();
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_WAIT:
+    {
+      if (millis()-m_pre_time >= 50)
+      {
+        if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
+        {
+          m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_START);
+          m_pre_time = millis();
+        }
+        else
+        {
+          m_retryCnt = 0;
+          m_pre_time = millis();
+          m_step.SetStep(UI_REMOTECTRL_STEP_TIMEOUT);
+        }
+      }
+      if(m_IsRespCplt)
+      {
+        m_step.SetStep(UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case UI_REMOTECTRL_STEP_DATA_SEND_SEQ_DAT_END:
+    {
+      m_step.SetStep(UI_REMOTECTRL_STEP_TODO);
+      m_pre_time = millis();
+    }
+    break;
+
 
     default:
       break;

@@ -249,9 +249,9 @@ int enFastechMotor::WaitDone(uint8_t mode)
   return 0;
 }
 
-void enFastechMotor::IsAxisDone()
+bool enFastechMotor::IsAxisDone()
 {
-  ;
+  return m_AxisState.axis_status[DEF_FM_BANK_STATE_01][FM_REG_INPOSIOTION];
 }
 
 int  enFastechMotor::ClearState()

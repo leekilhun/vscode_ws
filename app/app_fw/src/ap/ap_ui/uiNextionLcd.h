@@ -9,7 +9,7 @@
 #ifndef SRC_AP_AP_UI_UINEXTIONLCD_H_
 #define SRC_AP_AP_UI_UINEXTIONLCD_H_
 
-#define UI_NEXTION_MAX_BUFFER_LENGTH                     32+1
+#define UI_NEXTION_MAX_BUFFER_LENGTH                     (32+1)
 
 class uiNextionLcd
 {
@@ -63,6 +63,7 @@ public:
   uint8_t  m_stepBuffer[UI_NEXTION_MAX_BUFFER_LENGTH];
   uint32_t  m_pre_time;
   prc_step_t  m_step;
+  bool m_lockSendMsg;
   /****************************************************
    *  Constructor
    ****************************************************/
@@ -91,7 +92,7 @@ public:
   void SendMotorData();
   int SaveMotorData();
 
-  void SendAxisData();
+  void SendAxisIoData();
   void SendApReg();
   void SendApIoReg();
   void SendApCfgData();

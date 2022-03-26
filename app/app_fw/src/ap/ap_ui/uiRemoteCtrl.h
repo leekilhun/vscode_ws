@@ -7,7 +7,7 @@
 
 #ifndef SRC_AP_AP_UI_UIREMOTECTRL_H_
 #define SRC_AP_AP_UI_UIREMOTECTRL_H_
-#define UI_REMOTECTRL_MAX_BUFFER_LENGTH                     32
+#define UI_REMOTECTRL_MAX_BUFFER_LENGTH                     (40+1)
 class uiRemoteCtrl
 {
   /****************************************************
@@ -55,6 +55,7 @@ private:
   uint8_t  m_stepBuffer[UI_REMOTECTRL_MAX_BUFFER_LENGTH];
   uint32_t  m_pre_time;
   prc_step_t  m_step;
+  bool m_lockSendMsg;
   /****************************************************
    *  Constructor
    ****************************************************/
@@ -67,6 +68,7 @@ public:
    ****************************************************/
 private:
   void doRunStep();
+  void okResponse();
 public:
   bool ThreadJob();
   int Init(uiRemoteCtrl::cfg_t* cfg);

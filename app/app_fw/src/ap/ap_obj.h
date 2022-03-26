@@ -13,13 +13,16 @@
 
 
 #define AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG     0
-#define AP_DEF_OBJ_CYLINDER_ID_1             1
-#define AP_DEF_OBJ_CYLINDER_ID_MAX           2
+#define AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN   1
+#define AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP     2
+#define AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP     3
+#define AP_DEF_OBJ_CYLINDER_ID_MAX           4
 
 
-#define AP_DEF_OBJ_VACUUM_ID_0               0
-#define AP_DEF_OBJ_VACUUM_ID_1               1
-#define AP_DEF_OBJ_VACUUM_ID_2               2
+#define AP_DEF_OBJ_VACUUM_ID_PHONE_JIG       0
+#define AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD       1
+#define AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL       2
+#define AP_DEF_OBJ_VACUUM_ID_MAX             3
 
 
 #endif /* SRC_AP_AP_OBJ_H_ */

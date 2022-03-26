@@ -26,7 +26,7 @@ public:
   virtual int MotorOnOff(bool on_off) = 0;
   virtual bool IsMotorOn() = 0;
   virtual int WaitDone(uint8_t mode) = 0;
-  virtual void IsAxisDone() = 0;
+  virtual bool IsAxisDone() = 0;
   virtual int  ClearState() = 0;
 
 

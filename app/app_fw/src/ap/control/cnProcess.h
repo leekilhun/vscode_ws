@@ -8,7 +8,7 @@
 #ifndef SRC_AP_CONTROL_CNPROCESS_H_
 #define SRC_AP_CONTROL_CNPROCESS_H_
 
-#define CN_PROCESS_MAX_BUFFER_LENGTH                20
+#define CN_PROCESS_MAX_BUFFER_LENGTH                40
 
 #define CN_PROCESS_STEP_INIT                        0
 #define CN_PROCESS_STEP_TODO                        1
@@ -155,7 +155,7 @@ private:
   bool m_IsAutoReady;
 
 public:
-  bool m_IsBusy;
+  bool m_IsToDoState;
 
   uint8_t  m_stepBuffer[CN_PROCESS_MAX_BUFFER_LENGTH];
   uint32_t  m_pre_time;
@@ -185,11 +185,16 @@ public:
   int Initialize();
   void ThreadJob();
 
+  bool IsMotorOn();
+  bool IsMotorRun();
+  bool IsMotorMoveCplt();
   void MotorOnOff(bool on_off);
   void MotorStop();
   void MotorRun(int cmd_pos, uint32_t cmd_vel, uint32_t acc = 100, uint32_t decel = 100);
 
+  /*  data format (12 bytes) addr 4byte, pos 4byte, vel 4byte */
   void WriteMotorData(uint8_t* p_data, uint8_t length);
+
   void WriteApCfgData(uint8_t* p_data, uint8_t length);
   void WriteCylData(uint8_t* p_data, uint8_t length);
   void WriteVacData(uint8_t* p_data, uint8_t length);

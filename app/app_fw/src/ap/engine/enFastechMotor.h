@@ -209,7 +209,7 @@ public:
 
   bool IsMotorOn();
   int WaitDone(uint8_t mode);
-  void IsAxisDone();
+  bool IsAxisDone();
   int  ClearState();
 
   int ClearPos();
