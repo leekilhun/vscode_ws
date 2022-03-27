@@ -69,6 +69,7 @@ public:
 private:
   void doRunStep();
   void okResponse();
+  void retGetValue(uint8_t* p_data, uint8_t length);
 public:
   bool ThreadJob();
   int Init(uiRemoteCtrl::cfg_t* cfg);

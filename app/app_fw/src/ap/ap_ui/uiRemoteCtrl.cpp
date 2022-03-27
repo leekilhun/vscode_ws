@@ -27,6 +27,8 @@
 #define UI_REMOTECTRL_CMD_WRITE_VAC_DATA          0x33
 #define UI_REMOTECTRL_CMD_WRITE_SEQ_DATA          0x34
 
+#define UI_REMOTECTRL_CMD_MOTOR_PARM_SET          0xAC
+#define UI_REMOTECTRL_CMD_MOTOR_PARM_GET          0xAE
 #define UI_REMOTECTRL_CMD_OK_RESPONSE             0xAA
 
 
@@ -222,6 +224,19 @@ void uiRemoteCtrl::ProcessCmd()
       okResponse();
       break;
 
+    case UI_REMOTECTRL_CMD_MOTOR_PARM_GET:
+    {
+      int ret_value = 0;
+      ret_value = m_pFm->GetMotorParameter(m_Packet.rx_packet.data[0]);
+      //okResponse();
+      retGetValue((uint8_t*)&ret_value,sizeof(int));
+    }
+    break;
+
+    case UI_REMOTECTRL_CMD_MOTOR_PARM_SET:
+      okResponse();
+      break;
+
     default:
       //cmdRobotro_SendCmd(m_pCmd, m_pCmd->rx_packet.cmd_type, UI_REMOTECTRL_ERR_WRONG_CMD, NULL);
       break;
@@ -289,6 +304,11 @@ void uiRemoteCtrl::CommRecovery()
 void uiRemoteCtrl::okResponse()
 {
   cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_OK_RESPONSE, 0, 0);
+}
+
+void uiRemoteCtrl::retGetValue(uint8_t* p_data, uint8_t length)
+{
+cmdRobotro_SendCmd(&m_Packet, UI_REMOTECTRL_CMD_MOTOR_PARM_GET, p_data, length);
 }
 
 bool uiRemoteCtrl::ThreadJob()

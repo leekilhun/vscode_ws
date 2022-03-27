@@ -49,6 +49,37 @@ bool enFastechMotor::IsBusy()
   return m_AxisState.axis_status[DEF_FM_BANK_STATE_02][FM_REG_MOTIONING];
 }
 
+
+int enFastechMotor::GetMotorParameter(uint8_t parm_no)
+{
+  int ret = 0;
+  uint8_t data[2] = {0,};
+  data[0] = DEF_FASTECH_COMM_TYPE_GET_RAM_PARAM;
+  data[1] = parm_no;
+
+  cmdFastech_SendCmd(&this->m_Packet,&data[0],2);
+  uint32_t pass_ms = millis();
+  uint8_t retry_cnt = 0;
+
+  m_Packet.rx_packet.response = 0xfe;
+  while(m_Packet.rx_packet.response == 0xfe)
+  {
+    if ((millis() - pass_ms) > 100)
+    {
+      if (retry_cnt++ == 3)
+        break;
+      else
+        ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],2);
+      pass_ms = millis();
+    }
+  }
+
+  ret = utilDwToInt(m_Packet.rx_packet.data);
+
+  return ret;
+}
+
+
 int enFastechMotor::MotorOnOff(bool on_off)
 {
   bool ret;
