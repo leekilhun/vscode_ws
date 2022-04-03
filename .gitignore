@@ -25,6 +25,8 @@ CMakeFiles/
 Testing/
 _htmresc/
 
+max78000_sdk/
+w806_sdk
 build/
 
 pico-examples/

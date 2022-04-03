@@ -19,9 +19,9 @@
 #define AP_DEF_OBJ_CYLINDER_ID_MAX           4
 
 
-#define AP_DEF_OBJ_VACUUM_ID_PHONE_JIG       0
-#define AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD       1
-#define AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL       2
+#define AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD       0
+#define AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL       1
+#define AP_DEF_OBJ_VACUUM_ID_PHONE_JIG       2
 #define AP_DEF_OBJ_VACUUM_ID_MAX             3
 
 

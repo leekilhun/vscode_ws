@@ -20,7 +20,7 @@
 #define UI_NXLCD_RXCMD_MOT_CTRL_B0_JOG_CCW            B10000000
 
 #define UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST         B00000001
-#define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1          B00000010
+#define UI_NXLCD_RXCMD_MOT_CTRL_B1_MOVE_ORG           B00000010
 #define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2          B00000100
 #define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3          B00001000
 #define UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4          B00010000
@@ -363,7 +363,9 @@ void uiNextionLcd::ProcessCmd()
        break;
 
      case UI_NXLCD_RXCMD_LCD_SW_KEY_EVENT_RESET:
+       m_pAuto->ResetSw();
        break;
+
      default:
        break;
     }
@@ -420,7 +422,11 @@ void uiNextionLcd::ProcessCmd()
      case UI_NXLCD_RXCMD_MOT_CTRL_B1_ENCODE_RST:
        m_pFm->ClearPos();
        break;
-     case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED1:
+
+     case UI_NXLCD_RXCMD_MOT_CTRL_B1_MOVE_ORG:
+       m_pAp->MotorOrigin();//m_pFm->MoveOrigin();
+       break;
+
      case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED2:
      case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED3:
      case UI_NXLCD_RXCMD_MOT_CTRL_B1_RESERVED4:
@@ -490,9 +496,47 @@ void uiNextionLcd::ProcessCmd()
     SendSequenceData();
   }
   break;
+  case NX_LCD_RXCMD_TYPE_REQ_SEQ_INIT:
+  {
+    m_pAp->Initialize();
+  }
+  break;
+  case NX_LCD_RXCMD_TYPE_CTRL_CYL:
+  {
+    // data 0 - id, data 1 - on off
+
+    bool on_off = (bool)m_Packet.rx_packet.data[1];
+    switch (m_Packet.rx_packet.data[0])
+    {
+      case AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG:
+        m_pAp->CylOpen(AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG, on_off);
+        break;
+      case AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN:
+        m_pAp->CylOpen(AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN, on_off);
+        break;
+      case AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP:
+        m_pAp->CylOpen(AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP, on_off);
+        break;
+      case AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP:
+        m_pAp->CylOpen(AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP, on_off);
+        break;
+      default:
+        break;
+    }
+
+
+
+
+  }
+  break;
+  case NX_LCD_RXCMD_TYPE_CTRL_VAC:
+  {
+
+  }
+  break;
   default:
     break;
-  }
+ }
 
   m_IsRespCplt = true;
 }
@@ -502,6 +546,7 @@ bool uiNextionLcd::ThreadJob()
   doRunStep();
   return m_IsRespCplt;
 }
+
 
 void uiNextionLcd::doRunStep()
 {
@@ -567,11 +612,11 @@ void uiNextionLcd::doRunStep()
     axis_dat::dat_t data;
     data = m_pApAxisDat->ReadData(axis_dat::addr_e::ready_pos);
     memcpy(&m_stepBuffer[1], (uint8_t*)&data, 8);
-    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_0);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_clean_dust);
     memcpy(&m_stepBuffer[9], (uint8_t*)&data, 8);
-    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_1);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_vinyl_suction);
     memcpy(&m_stepBuffer[17], (uint8_t*)&data, 8);
-    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_2);
+    data = m_pApAxisDat->ReadData(axis_dat::addr_e::pos_vinyl_peel);
     memcpy(&m_stepBuffer[25], (uint8_t*)&data, 8);
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);

@@ -2,6 +2,9 @@
 	"folders": [
     {
       "path": "w806_fw"
+    },
+    {
+      "path": "w806_rtos"
     }
   ],
   "settings": {

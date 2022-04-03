@@ -81,6 +81,7 @@ public:
     Ap_reg* p_apReg;
     IIO* p_apIo;
     axis_dat* p_apDat;
+    ap_dat* p_apCfgDat;
     uint8_t ch;
     uint32_t baud;
   };
@@ -165,6 +166,7 @@ private:
   Ap_reg*   m_pApReg;
   IIO* m_pApIo;
   axis_dat* m_pApDat;
+  ap_dat* m_pApCfgDat;
 
   /****************************************************
    *  Constructor
@@ -194,7 +196,10 @@ public:
   bool IsBusy();
   bool IsOriginOK();
 
+  int MoveToLimit(uint32_t cmd_vel = 1000, bool is_cw = true);
+  int MoveOrigin();
   int GetMotorParameter(uint8_t parm_no);
+  int SetMotorParameter(uint8_t parm_no, int value);
   int MotorOnOff(bool on_off);
   int JogMove(uint32_t cmd_vel = 1000, bool is_cw = true);
   int JogMove(uint32_t jog_pos, uint32_t cmd_vel = 1000, bool is_cw = true);

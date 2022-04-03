@@ -118,6 +118,10 @@
 #define CN_PROCESS_STEP_WRITE_SEQ_DATA_WAIT         96
 #define CN_PROCESS_STEP_WRITE_SEQ_DATA_END          97
 
+#define CN_PROCESS_STEP_SEQ_INITIAL                 98
+#define CN_PROCESS_STEP_SEQ_INITIAL_START           99
+#define CN_PROCESS_STEP_SEQ_INITIAL_WAIT           100
+#define CN_PROCESS_STEP_SEQ_INITIAL_END            111
 
 #define CN_PROCESS_STEP_TIMEOUT                     254
 #define CN_PROCESS_STEP_END                         255
@@ -138,12 +142,16 @@ public:
     ap_dat* p_apCfgDat;
     seq_dat* p_apSeqDat;
     enFastechMotor* p_Fm;
+    enCylinder* p_Cyl;
+    enVacuum* p_Vac;
     cnAutoManager* p_AutoManger;
   };
 
 private:
   cnAutoManager* m_pAuto;
   enFastechMotor* m_pFm;
+  enCylinder* m_pCyl;
+  enVacuum* m_pVac;
   Ap_reg*       m_pApReg;
   IIO* m_pApIo;
   axis_dat* m_pApAxisDat;
@@ -185,9 +193,18 @@ public:
   int Initialize();
   void ThreadJob();
 
+  bool IsCylOpen(uint8_t obj_id);
+  bool IsCylClose(uint8_t obj_id);
+  int CylOpen(uint8_t obj_id, bool skip_sensor = false);
+  int CylClose(uint8_t obj_id, bool skip_sensor = false);
+  bool IsVacOn(uint8_t obj_id);
+  bool IsVacOff(uint8_t obj_id);
+  int VacOn(uint8_t obj_id, bool skip_sensor = false);
+  int VacOff(uint8_t obj_id, bool skip_sensor = false);
   bool IsMotorOn();
   bool IsMotorRun();
   bool IsMotorMoveCplt();
+  void MotorOrigin();
   void MotorOnOff(bool on_off);
   void MotorStop();
   void MotorRun(int cmd_pos, uint32_t cmd_vel, uint32_t acc = 100, uint32_t decel = 100);

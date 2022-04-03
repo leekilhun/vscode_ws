@@ -21,7 +21,7 @@
 
 
 #define NX_LCD_CMD_MAX_DATA_LENGTH                  24
-#define NX_LCD_CMD_MAX_PACKET_LENGTH                NX_LCD_CMD_MAX_DATA_LENGTH + 8
+#define NX_LCD_CMD_MAX_PACKET_LENGTH                (NX_LCD_CMD_MAX_DATA_LENGTH + 8)
 #define NX_LCD_RXCMD_TYPE_REQ_BEEP                  0x00
 #define NX_LCD_RXCMD_TYPE_WRITE_OUT_REG             0x03
 #define NX_LCD_RXCMD_TYPE_CURR_PAGE_NO              0x04
@@ -37,6 +37,10 @@
 #define NX_LCD_RXCMD_TYPE_REQ_VAC_DATA              0x0e
 #define NX_LCD_RXCMD_TYPE_SAVE_SEQ_DATA             0x0f
 #define NX_LCD_RXCMD_TYPE_REQ_SEQ_DATA              0x10
+#define NX_LCD_RXCMD_TYPE_REQ_SEQ_INIT              0x11
+#define NX_LCD_RXCMD_TYPE_CTRL_CYL                  0x12
+#define NX_LCD_RXCMD_TYPE_CTRL_VAC                  0x13
+
 #define NX_LCD_RXCMD_TYPE_RESP_BKCMD                0xaa
 
 #define NX_LCD_TXCMD_TYPE_MOTOR_CURR_POS            0x01
@@ -54,6 +58,7 @@
 #define NX_LCD_TXCMD_TYPE_LCD_CHANGE_PAGE           0x14
 #define NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE          0x15
 #define NX_LCD_TXCMD_TYPE_LCD_RESET_RECEIVE_CNT     0x16
+#define NX_LCD_TXCMD_TYPE_POP_ALARM_MSG             0x50
 
 #define NX_LCD_REPLY_BKCMD_OK                       0x66
 #define NX_LCD_REPLY_GETVALUE_TXT                   0x70

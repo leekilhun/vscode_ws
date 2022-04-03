@@ -63,7 +63,7 @@ struct ap_dat
 
   enum class addr_e //
   {
-    ap_mot_cfg, ap_1, ap_2, ap_3, ap_4, ap_5, ap_6, ap_7,
+    ap_mot_move, ap_mot_scale, ap_2, ap_3, ap_4, ap_5, ap_6, ap_7,
     _max
   };
 
@@ -102,13 +102,13 @@ struct ap_dat
   }
 
   inline void Write_MotCfg(dat_t data){
-    apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_cfg)]=data;
+    apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_move)]=data;
     uint16_t rcv_data[2] = {data.parm1, data.parm2};
-    at24c64Write(APDAT_ADDR(static_cast<uint8_t>(ap_dat::addr_e::ap_mot_cfg)), (uint8_t *)&rcv_data[0], APDAT_LENGTH);
+    at24c64Write(APDAT_ADDR(static_cast<uint8_t>(ap_dat::addr_e::ap_mot_move)), (uint8_t *)&rcv_data[0], APDAT_LENGTH);
   }
 
   inline dat_t Read_MotCfg(){
-    return apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_cfg)];
+    return apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_move)];
     }
 };
 
@@ -140,7 +140,8 @@ struct axis_dat
   /*multiply by data length 8*/
   enum class addr_e
   {
-    ready_pos, pos_0, pos_1, pos_2, pos_3, pos_4, pos_5, pos_6,
+    ready_pos, pos_clean_dust, pos_vinyl_suction, pos_vinyl_peel,
+    pos_peel_cplt, pos_vinyl_reattach, pos_5, pos_6,
     _max
   };
   //pos_7, pos_8, pos_9, pos_a, pos_b, pos_c, pos_d, pos_e,
@@ -194,7 +195,7 @@ struct cyl_dat{
   enum class addr_e //
   {
     phone_clamp_cyl,
-    cyl_1, cyl_2, cyl_3,
+    drum_updown_cyl, drum_z_up_cyl, drum_stop_cyl,
     _max
   };
 
@@ -249,7 +250,7 @@ struct vac_dat{
   enum class addr_e //
   {
     peel_drum_vac,
-    vac_1, vac_2, vac_3,
+    peel_drum_tail_vac, peel_phone_jig, vac_3,
     _max
   };
 

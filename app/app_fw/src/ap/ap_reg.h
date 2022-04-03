@@ -156,7 +156,6 @@ struct Ap_reg
         {
           value = value & B11110000;
         }
-
         break;
 
       case AP_REG_EMG_STOP:
@@ -169,7 +168,6 @@ struct Ap_reg
         {
           value = value & B11111101;
         }
-
         break;
 
       case AP_REG_AUTO_READY:

@@ -29,6 +29,11 @@ cnAutoManager::~cnAutoManager ()
   // TODO Auto-generated destructor stub
 }
 
+void cnAutoManager::Init(cnAutoManager::cfg_t &cfg)
+{
+  m_pApReg = cfg.p_apReg;
+}
+
 opMode cnAutoManager::GetOPMode()
 {
   return m_OpMode;
@@ -59,8 +64,9 @@ void cnAutoManager::StopSw()
 
 void cnAutoManager::ResetSw()
 {
-  SetOPMode(OP_MODE_READY);
+  SetOPMode(OP_MODE_STOP);
   SetOPStatus(OP_STEP_STOP);
+  m_pApReg->SetRunState(AP_REG_ALARM_STATUS,false);
   m_checkReady = false;
 }
 
@@ -90,7 +96,10 @@ void cnAutoManager::StartSw()
 
 void cnAutoManager::AlarmAuto(state_e err)
 {
+  //m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ALARM_STATUS]=true;
+  //m_pApReg->SetRunState(AP_REG_ALARM_STATUS);
 
+  m_pApReg->SetRunState(AP_REG_ALARM_STATUS, true);
 }
 
 
@@ -103,50 +112,43 @@ int cnAutoManager::AutoReady()
     return ;
   }*/
 
-
-  if (m_checkReady)
+  switch (state)
   {
-    switch (state)
+    case cnAutoManager::state_e::ready:
     {
-      case cnAutoManager::state_e::ready:
+      if (m_FlagStartSw == true
+          || m_pushSw[static_cast<uint8_t>(sw_e::start)].state == sw_event::short_key)
       {
-        if (m_FlagStartSw == true
-         || m_pushSw[static_cast<uint8_t>(sw_e::start)].state == sw_event::short_key)
+        m_FlagStartSw = false;
+        if (m_OpStatus == OP_START_RUN)
         {
-          m_FlagStartSw = false;
-          if (m_OpStatus == OP_START_RUN)
-          {
-            SetOPMode(OP_MODE_AUTORUN);
-            SetOPStatus(OP_RUN);
-          }
-          else if (m_OpStatus != OP_RUN)
-          {
-            SetOPMode(OP_MODE_READY);
-            SetOPStatus(OP_START_RUN);
-          }
-
+          SetOPMode(OP_MODE_AUTORUN);
+          SetOPStatus(OP_RUN);
+        }
+        else if (m_OpStatus != OP_RUN)
+        {
+          SetOPMode(OP_MODE_READY);
+          SetOPStatus(OP_START_RUN);
         }
       }
-      break;
-
-      case cnAutoManager::state_e::error_stop:
-        AlarmAuto(state);
-        break;
-      case cnAutoManager::state_e::servo_on_err:
-        AlarmAuto(state);
-        break;
-      case cnAutoManager::state_e::axis_origin_err:
-        AlarmAuto(state);
-        break;
-      case cnAutoManager::state_e::mcu_unit_err:
-        AlarmAuto(state);
-        break;
-      default:
-        break;
     }
+    break;
 
+    case cnAutoManager::state_e::error_stop:
+      AlarmAuto(state);
+      break;
+    case cnAutoManager::state_e::servo_on_err:
+      AlarmAuto(state);
+      break;
+    case cnAutoManager::state_e::axis_origin_err:
+      AlarmAuto(state);
+      break;
+    case cnAutoManager::state_e::mcu_unit_err:
+      AlarmAuto(state);
+      break;
+    default:
+      break;
   }
-
 
   return static_cast<int>(state);
 }
@@ -172,11 +174,11 @@ cnAutoManager::state_e cnAutoManager::checkStartRunCondition()
         ret = cnAutoManager::state_e::error_stop;
       }
     }
-    else if (m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_MOTOR_ON])
+    else if (!m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_MOTOR_ON]) // not
     {
       ret =cnAutoManager::state_e::servo_on_err;
     }
-    else if (m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ORG_COMPLETED])
+    else if (!m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ORG_COMPLETED]) // not
     {
       ret =cnAutoManager::state_e::axis_origin_err;
     }
@@ -193,6 +195,7 @@ cnAutoManager::state_e cnAutoManager::checkStartRunCondition()
 
   return ret;
 }
+
 
 void cnAutoManager::pushSW(sw_t& sw)
 {
@@ -268,7 +271,10 @@ void cnAutoManager::ThreadJob()
   updateSw();
   doRunStep();
 
-  AutoReady();
+  if (m_checkReady)
+  {
+    AutoReady();
+  }
 }
 
 void cnAutoManager::doRunStep()

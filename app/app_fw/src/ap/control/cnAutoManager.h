@@ -31,10 +31,31 @@ public:
   {
     ready,
     mcu_unit_err,
+    seq_initial_timeout,
     emg_stop,
     error_stop,
+
     servo_on_err,
+    servo_off_err,
     axis_origin_err,
+    axis_move_timeout,
+    axis_stop_timeout,
+
+    cyl_0_open_timeout,
+    cyl_1_open_timeout,
+    cyl_2_open_timeout,
+    cyl_3_open_timeout,
+    cyl_0_close_timeout,
+    cyl_1_close_timeout,
+    cyl_2_close_timeout,
+    cyl_3_close_timeout,
+
+    vac_0_on_timeout,
+    vac_1_on_timeout,
+    vac_2_on_timeout,
+    vac_0_off_timeout,
+    vac_1_off_timeout,
+    vac_2_off_timeout,
   };
 
 
@@ -109,6 +130,7 @@ private:
   void updateSw();
 
 public:
+  void Init(cnAutoManager::cfg_t &cfg);
   void ThreadJob();
   // condition for auto-run
   int AutoReady();

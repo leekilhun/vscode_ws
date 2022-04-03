@@ -117,7 +117,10 @@ bool cmdRobotro_ReceivePacket(robotro_t *p_cmd)
       p_cmd->rx_packet.length = rx_data % RBTRO_CMD_MAX_DATA_LENGTH; // prevent overflow
       p_cmd->rx_packet.buffer[p_cmd->data_len++] = rx_data;
       p_cmd->rx_packet.check_sum += rx_data;
-      p_cmd->state = RBTRO_CMD_STATE_WAIT_DATA;
+      if (p_cmd->rx_packet.length == 0)
+        p_cmd->state = RBTRO_CMD_STATE_WAIT_CHECKSUM;
+      else
+        p_cmd->state = RBTRO_CMD_STATE_WAIT_DATA;
       break;
 
     case RBTRO_CMD_STATE_WAIT_DATA:
@@ -146,6 +149,8 @@ bool cmdRobotro_ReceivePacket(robotro_t *p_cmd)
         ret = true;
       }
       p_cmd->state = RBTRO_CMD_STATE_WAIT_STX;
+      p_cmd->data_len = 0;
+      p_cmd->index = 0;
       break;
 
     case RBTRO_CMD_STATE_WAIT_ETX:

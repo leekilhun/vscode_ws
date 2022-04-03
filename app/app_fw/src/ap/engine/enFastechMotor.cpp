@@ -17,6 +17,7 @@ enFastechMotor::enFastechMotor (uint8_t id = 0):m_AxisId(id)
   m_pApReg = NULL;
   m_pApIo = NULL;
   m_pApDat = NULL;
+  m_pApCfgDat = NULL;
   m_Packet.MotorId = m_AxisId;
   m_IsConnected = false;
 }
@@ -32,6 +33,7 @@ int enFastechMotor::Init(enFastechMotor::cfg_t* cfg)
   cmdFastech_Open(&m_Packet, cfg->ch, cfg->baud);
 
   m_pApReg = cfg->p_apReg;
+  m_pApCfgDat =cfg->p_apCfgDat;
   m_pApIo = cfg->p_apIo;
   m_pApDat = cfg->p_apDat;
 
@@ -49,6 +51,40 @@ bool enFastechMotor::IsBusy()
   return m_AxisState.axis_status[DEF_FM_BANK_STATE_02][FM_REG_MOTIONING];
 }
 
+int enFastechMotor::SetMotorParameter(uint8_t parm_no, int value)
+{
+  int ret = 0;
+  uint8_t data[6] = {0,};
+  data[0] = DEF_FASTECH_COMM_TYPE_SET_RAM_PARAM;
+  data[1] = parm_no;
+  data[2] = (uint8_t)(value>>0);
+  data[3] = (uint8_t)(value>>8);
+  data[4] = (uint8_t)(value>>16);
+  data[5] = (uint8_t)(value>>24);
+
+  cmdFastech_SendCmd(&this->m_Packet,&data[0],6);
+  uint32_t pass_ms = millis();
+  uint8_t retry_cnt = 0;
+
+  m_Packet.rx_packet.response = 0xfe;
+  while(m_Packet.rx_packet.response == 0xfe)
+  {
+    if ((millis() - pass_ms) > 100)
+    {
+      if (retry_cnt++ == 3)
+      {
+        ret = -1;
+        break;
+      }
+      else
+        cmdFastech_SendCmd(&this->m_Packet,&data[0],6);
+      pass_ms = millis();
+    }
+  }
+
+
+  return ret;
+}
 
 int enFastechMotor::GetMotorParameter(uint8_t parm_no)
 {
@@ -79,6 +115,33 @@ int enFastechMotor::GetMotorParameter(uint8_t parm_no)
   return ret;
 }
 
+int enFastechMotor::MoveOrigin()
+{
+  bool ret;
+  if (!IsMotorOn())
+    return -1;
+  uint8_t data[1] ={0};
+  data[0] = DEF_FASTECH_COMM_TYPE_MOVE_ORG_SINGLE_AXIS;
+
+  ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],1);
+  uint32_t pass_ms = millis();
+  uint8_t retry_cnt = 0;
+
+  m_Packet.rx_packet.response = 0xfe;
+  while(m_Packet.rx_packet.response)
+  {
+    if ((millis() - pass_ms) > 100)
+    {
+      if (retry_cnt++ == 3)
+        break;
+      else
+        ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],1);
+      pass_ms = millis();
+    }
+  }
+
+  return (ret ? 0 : -1);
+}
 
 int enFastechMotor::MotorOnOff(bool on_off)
 {
@@ -97,16 +160,26 @@ int enFastechMotor::Move (int cmd_pos, uint32_t cmd_vel, uint32_t acc, uint32_t 
   if (!IsMotorOn())
     return -1;
 
+  int conv_pos = 0;
+  uint32_t conv_vel = 0;
+  ap_dat::dat_t cfg = m_pApCfgDat->apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_scale)];
+  uint16_t turn_per_pulse = cfg.parm1;
+  uint16_t turn_per_move_mm = cfg.parm2;
+
+  //conv_pos = (((cmd_pos)/(int)turn_per_move_mm)*(int)turn_per_pulse)/1000;
+  conv_pos = (((float)(cmd_pos)/(float)turn_per_move_mm)*(int)turn_per_pulse)/1000;
+  conv_vel = (uint32_t)(((float)cmd_vel/(float)60)*(float)turn_per_pulse);
+
   uint8_t data[9] ={0};
   data[0] = DEF_FASTECH_COMM_TYPE_MOVE_ABS_SINGLE_AXIS;
-  data[1] = (uint8_t)(cmd_pos>>0);
-  data[2] = (uint8_t)(cmd_pos>>8);
-  data[3] = (uint8_t)(cmd_pos>>16);
-  data[4] = (uint8_t)(cmd_pos>>24);
-  data[5] = (uint8_t)(cmd_vel>>0);
-  data[6] = (uint8_t)(cmd_vel>>8);
-  data[7] = (uint8_t)(cmd_vel>>16);
-  data[8] = (uint8_t)(cmd_vel>>24);
+  data[1] = (uint8_t)(conv_pos>>0);
+  data[2] = (uint8_t)(conv_pos>>8);
+  data[3] = (uint8_t)(conv_pos>>16);
+  data[4] = (uint8_t)(conv_pos>>24);
+  data[5] = (uint8_t)(conv_vel>>0);
+  data[6] = (uint8_t)(conv_vel>>8);
+  data[7] = (uint8_t)(conv_vel>>16);
+  data[8] = (uint8_t)(conv_vel>>24);
   ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
   uint32_t pass_ms = millis();
   uint8_t retry_cnt = 0;
@@ -126,7 +199,24 @@ int enFastechMotor::Move (int cmd_pos, uint32_t cmd_vel, uint32_t acc, uint32_t 
   return (ret ? 0 : -1);
 }
 
+int enFastechMotor::MoveToLimit(uint32_t cmd_vel, bool is_cw)
+{
+  bool ret;
+  if (!IsMotorOn())
+    return -1;
 
+  uint8_t data[6] ={0};
+  data[0] = DEF_FASTECH_COMM_TYPE_MOVE_TO_LIMIT;
+  data[1] = (uint8_t)(cmd_vel>>0);
+  data[2] = (uint8_t)(cmd_vel>>8);
+  data[3] = (uint8_t)(cmd_vel>>16);
+  data[4] = (uint8_t)(cmd_vel>>24);
+  data[5] = (uint8_t)(is_cw);
+  ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],6);
+
+  return (ret ? 0 : -1);
+
+}
 
 int enFastechMotor::JogMove(uint32_t cmd_vel,bool is_cw)
 {
@@ -282,7 +372,10 @@ int enFastechMotor::WaitDone(uint8_t mode)
 
 bool enFastechMotor::IsAxisDone()
 {
-  return m_AxisState.axis_status[DEF_FM_BANK_STATE_01][FM_REG_INPOSIOTION];
+  bool ret = false;
+  ret |= m_AxisState.axis_status[DEF_FM_BANK_STATE_01][FM_REG_INPOSIOTION];
+  ret |= (m_AxisState.act_pos == m_AxisState.cmd_pos);
+  return ret;
 }
 
 int  enFastechMotor::ClearState()

@@ -20,6 +20,8 @@ cnProcess::cnProcess ():m_pApReg(NULL)
 {
   m_pApIo = NULL;
   m_pFm = NULL;
+  m_pCyl = NULL;
+  m_pVac = NULL;
   m_pApAxisDat = NULL;
   m_pApCylDat = NULL;
   m_pApVacDat = NULL;
@@ -46,6 +48,8 @@ int cnProcess::Init(cnProcess::cfg_t* cfg)
   m_pApReg = cfg->p_apReg;
   m_pApIo = cfg->p_apIo;
   m_pFm = cfg->p_Fm;
+  m_pCyl = cfg->p_Cyl;
+  m_pVac = cfg->p_Vac;
   m_pAuto = cfg->p_AutoManger;
   m_pApAxisDat = cfg->p_apAxisDat;
   m_pApCylDat = cfg->p_apCylDat;
@@ -96,7 +100,7 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_PHONE_JIG_OPEN_START:
     {
       //
-      m_IsToDoState = false;
+      m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].Open(true);
       m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_OPEN_WAIT);
       m_pre_time = millis();
     }
@@ -113,12 +117,13 @@ void cnProcess::doRunStep()
         else
         {
           m_retryCnt = 0;
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::cyl_0_open_timeout);
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
           m_pre_time = millis();
         }
       }
 
-      if (1)// is open jig
+      if (m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].IsOpen())// is open jig
       {
         m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_OPEN_END);
         m_pre_time = millis();
@@ -127,8 +132,6 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_PHONE_JIG_OPEN_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -147,7 +150,7 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_PHONE_JIG_CLOSE_START:
     {
       //
-      m_IsToDoState = false;
+      m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].Close(true);
       m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_CLOSE_WAIT);
       m_pre_time = millis();
     }
@@ -164,12 +167,13 @@ void cnProcess::doRunStep()
         else
         {
           m_retryCnt = 0;
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::cyl_0_close_timeout);
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
           m_pre_time = millis();
         }
       }
 
-      if (1) // is close jig
+      if (m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].IsClose()) // is close jig
       {
         m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_CLOSE_END);
         m_pre_time = millis();
@@ -178,13 +182,12 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_PHONE_JIG_CLOSE_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
     break;
 
+#if 0  // not use in auto run
     /*######################################################
        axis pos get origin
       ######################################################*/
@@ -235,6 +238,7 @@ void cnProcess::doRunStep()
       m_pre_time = millis();
     }
     break;
+#endif
     /*######################################################
        move axis position ready (process start)
       ######################################################*/
@@ -248,29 +252,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_READY_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::ready_pos)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
+
       m_step.SetStep(CN_PROCESS_STEP_POS_READY_WAIT);
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_READY_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_READY_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1)// is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_READY_END);
         m_pre_time = millis();
@@ -298,29 +312,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_CLEAN_DUST_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_clean_dust)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_CLEAN_DUST_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_END);
         m_pre_time = millis();
@@ -329,8 +353,6 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_POS_CLEAN_DUST_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -348,29 +370,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_SUCTION_VINYL_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_suction)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_SUCTION_VINYL_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_END);
         m_pre_time = millis();
@@ -397,30 +429,39 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_START:
     {
-      //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_peel)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_END);
         m_pre_time = millis();
@@ -429,8 +470,6 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -448,29 +487,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_peel_cplt)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_END);
         m_pre_time = millis();
@@ -479,8 +528,6 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -499,29 +546,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_REATTACH_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_reattach)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_REATTACH_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_END);
         m_pre_time = millis();
@@ -549,29 +606,39 @@ void cnProcess::doRunStep()
     case CN_PROCESS_STEP_POS_REATTACH_RUN_START:
     {
       //
-      m_IsToDoState = false;
-      m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_WAIT);      
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_5)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
+      m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_REATTACH_RUN_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_END);
         m_pre_time = millis();
@@ -580,8 +647,6 @@ void cnProcess::doRunStep()
     break;
     case CN_PROCESS_STEP_POS_REATTACH_RUN_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -663,9 +728,8 @@ void cnProcess::doRunStep()
 int cnProcess::Initialize()
 {
   // vacuum
-  // cylinder
-  // motor
-  // state
+  m_step.SetStep(CN_PROCESS_STEP_SEQ_INITIAL);
+  m_pre_time = millis();
   return 0;
 }
 
@@ -688,6 +752,82 @@ void cnProcess::doOpJob()
     {
       m_retryCnt = 0;
       m_IsToDoState = true;
+    }
+    break;
+    /*######################################################
+        operating sequence initial
+      ######################################################*/
+    case CN_PROCESS_STEP_SEQ_INITIAL:
+    {
+      m_retryCnt = 0;
+      m_IsToDoState = false;
+      m_step.SetStep(CN_PROCESS_STEP_SEQ_INITIAL_START);
+      m_pre_time = millis();
+    }
+    break;
+    case CN_PROCESS_STEP_SEQ_INITIAL_START:
+    {
+      // vacuum
+      {
+        m_pVac[AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD].Off(true);
+        m_pVac[AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL].Off(true);
+        m_pVac[AP_DEF_OBJ_VACUUM_ID_PHONE_JIG].Off(true);
+      }
+
+      // cylinder
+      {
+        m_pCyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN].Up(true);
+        m_pCyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP].Up(true);
+        m_pCyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP].Unlock(true);
+      }
+
+      // motor
+      {
+        axis_dat::dat_t pos_data =  m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::ready_pos)];
+        m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+      }
+
+      m_step.SetStep(CN_PROCESS_STEP_SEQ_INITIAL_WAIT);
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (millis()-pre_ms >=100)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::seq_initial_timeout);
+        }
+      }
+      m_pre_time = millis();
+    }
+    break;
+    case CN_PROCESS_STEP_SEQ_INITIAL_WAIT:
+    {
+      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT*100)
+      {
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
+      }
+
+      if (m_pFm->IsAxisDone())
+      {
+
+        m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].Open(true);
+        m_step.SetStep(CN_PROCESS_STEP_SEQ_INITIAL_END);
+        m_pre_time = millis();
+      }
+
+    }
+    break;
+    case CN_PROCESS_STEP_SEQ_INITIAL_END:
+    {
+      // state
+      m_pApReg->SetRunState(AP_REG_ORG_COMPLETED, true);
+
+      m_step.SetStep(CN_PROCESS_STEP_TODO);
+      m_pre_time = millis();
     }
     break;
     /*######################################################
@@ -732,6 +872,7 @@ void cnProcess::doOpJob()
         {
           m_retryCnt = 0;
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::servo_on_err);
           m_pre_time = millis();
         }
       }
@@ -784,6 +925,7 @@ void cnProcess::doOpJob()
         {
           m_retryCnt = 0;
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::servo_on_err);
           m_pre_time = millis();
         }
       }
@@ -835,6 +977,7 @@ void cnProcess::doOpJob()
         else
         {
           m_retryCnt = 0;
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_stop_timeout);
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
           m_pre_time = millis();
         }
@@ -881,25 +1024,33 @@ void cnProcess::doOpJob()
       decel = utilDwToUint(&m_stepBuffer[12]);
 
       m_pFm->Move(cmd_pos, cmd_vel, acc, decel);
+
       m_step.SetStep(CN_PROCESS_STEP_MOTOR_MOVE_WAIT);
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_MOTOR_MOVE_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_MOTOR_MOVE_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
       if (m_pFm->IsAxisDone())
@@ -932,7 +1083,7 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_PHONE_JIG_OPEN_START:
     {
       //
-      m_IsToDoState = false;
+      m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].Open(true);
       m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_OPEN_WAIT);
       m_pre_time = millis();
     }
@@ -950,17 +1101,17 @@ void cnProcess::doOpJob()
         else
         {
           m_retryCnt = 0;
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::cyl_0_open_timeout);
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
           m_pre_time = millis();
         }
       }
 
-      if (1) // is open jig
+      if (m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].IsOpen()) // is close jig
       {
         m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_OPEN_END);
         m_pre_time = millis();
       }
-      
     }
     break;
     case CN_PROCESS_STEP_PHONE_JIG_OPEN_END:
@@ -984,7 +1135,7 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_PHONE_JIG_CLOSE_START:
     {
       //
-      m_IsToDoState = false;
+      m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].Close(true);
       m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_CLOSE_WAIT);
       m_pre_time = millis();
     }
@@ -1001,12 +1152,13 @@ void cnProcess::doOpJob()
         else
         {
           m_retryCnt = 0;
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::cyl_0_close_timeout);
           m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
           m_pre_time = millis();
         }
       }
 
-      if (1) // is close jig
+      if (m_pCyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].IsClose()) // is close jig
       {
         m_step.SetStep(CN_PROCESS_STEP_PHONE_JIG_CLOSE_END);
         m_pre_time = millis();
@@ -1034,6 +1186,7 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_ORIGIN_START:
     {
       //
+      m_pFm->MoveOrigin();
       m_IsToDoState = false;
       m_step.SetStep(CN_PROCESS_STEP_POS_ORIGIN_WAIT);
       m_pre_time = millis();
@@ -1041,22 +1194,15 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_ORIGIN_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= 1000*10)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_ORIGIN_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_origin_err);
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1)// is ok
+      if (m_pFm->IsOriginOK())// is ok
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_ORIGIN_END);
         m_pre_time = millis();
@@ -1084,29 +1230,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_READY_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::ready_pos)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_READY_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_READY_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_READY_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1)// is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_READY_END);
         m_pre_time = millis();
@@ -1115,8 +1271,6 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_READY_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -1134,29 +1288,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_CLEAN_DUST_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_clean_dust)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_CLEAN_DUST_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_CLEAN_DUST_END);
         m_pre_time = millis();
@@ -1184,29 +1348,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_SUCTION_VINYL_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_suction)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_SUCTION_VINYL_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_SUCTION_VINYL_END);
         m_pre_time = millis();
@@ -1234,29 +1408,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_PEEL_VINYL_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_peel)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_END);
         m_pre_time = millis();
@@ -1265,8 +1449,6 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -1284,29 +1466,40 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_peel_cplt)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
+
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_END);
         m_pre_time = millis();
@@ -1315,8 +1508,6 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_PEEL_VINYL_CPLT_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -1334,29 +1525,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_REATTACH_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_vinyl_reattach)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_REATTACH_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_END);
         m_pre_time = millis();
@@ -1365,8 +1566,6 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_REATTACH_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -1384,29 +1583,39 @@ void cnProcess::doOpJob()
     case CN_PROCESS_STEP_POS_REATTACH_RUN_START:
     {
       //
-      m_IsToDoState = false;
+      axis_dat::dat_t pos_data = m_pApAxisDat->cmd_pos_dat[static_cast<uint8_t>(axis_dat::addr_e::pos_5)];
+      m_pFm->Move(pos_data.cmd_pos, pos_data.cmd_vel);
+
       m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_WAIT);
+
+      uint32_t pre_ms = millis();
+      while(!m_pFm->IsBusy()) // not
+      {
+        if (m_pFm->IsAxisDone())
+          break;
+
+        if (millis()-pre_ms >= CN_PROCESS_WAIT_TIMEOUT)
+        {
+          break;
+          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+          // setting alarm bit
+          m_pAuto->AlarmAuto(cnAutoManager::state_e::axis_move_timeout);
+        }
+        delay(1);
+      }
       m_pre_time = millis();
     }
     break;
     case CN_PROCESS_STEP_POS_REATTACH_RUN_WAIT:
     {
-      if (millis() - m_pre_time >= CN_PROCESS_WAIT_TIMEOUT)
+      if (millis() - m_pre_time >= CN_PROCESS_MOTOR_MOVE_TIMEOUT)
       {
-        if (m_retryCnt++ < CN_PROCESS_STEP_RETRY_CNT_MAX)
-        {
-          m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_START);
-          m_pre_time = millis();
-        }
-        else
-        {
-          m_retryCnt = 0;
-          m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
-          m_pre_time = millis();
-        }
+        m_retryCnt = 0;
+        m_step.SetStep(CN_PROCESS_STEP_TIMEOUT);
+        m_pre_time = millis();
       }
 
-      if (1) // is ok
+      if (m_pFm->IsAxisDone())
       {
         m_step.SetStep(CN_PROCESS_STEP_POS_REATTACH_RUN_END);
         m_pre_time = millis();
@@ -1415,8 +1624,6 @@ void cnProcess::doOpJob()
     break;
     case CN_PROCESS_STEP_POS_REATTACH_RUN_END:
     {
-      //if (millis() - m_pre_time < 5)
-      //  break;
       m_step.SetStep(CN_PROCESS_STEP_TODO);
       m_pre_time = millis();
     }
@@ -1829,6 +2036,73 @@ void cnProcess::ThreadJob()
 }
 
 
+bool cnProcess::IsCylOpen(uint8_t obj_id)
+{
+  return m_pCyl[obj_id].IsOpen();
+}
+
+bool cnProcess::IsCylClose(uint8_t obj_id)
+{
+  return m_pCyl[obj_id].IsClose();
+}
+
+int cnProcess::CylOpen(uint8_t obj_id, bool skip_sensor )
+{
+  int ret = 0;
+  ret = m_pCyl[obj_id].Open(skip_sensor);
+  if (ret != 0)
+  {
+    uint8_t err = static_cast<uint8_t>(cnAutoManager::state_e::cyl_0_open_timeout)+obj_id;
+    m_pAuto->AlarmAuto(static_cast<cnAutoManager::state_e>(err));
+  }
+  return ret;
+}
+int cnProcess::CylClose(uint8_t obj_id, bool skip_sensor )
+{
+  int ret = 0;
+  ret = m_pCyl[obj_id].Close(skip_sensor);
+  if (ret != 0)
+  {
+    uint8_t err = static_cast<uint8_t>(cnAutoManager::state_e::cyl_0_close_timeout)+obj_id;
+    m_pAuto->AlarmAuto(static_cast<cnAutoManager::state_e>(err));
+  }
+  return ret;
+}
+
+bool cnProcess::IsVacOn(uint8_t obj_id)
+{
+  return m_pVac[obj_id].IsOn();
+}
+
+bool cnProcess::IsVacOff(uint8_t obj_id)
+{
+  return m_pVac[obj_id].IsOff();
+}
+
+int cnProcess::VacOn(uint8_t obj_id, bool skip_sensor )
+{
+  int ret = 0;
+  ret = m_pVac[obj_id].On(skip_sensor);
+  if (ret != 0)
+  {
+    uint8_t err = static_cast<uint8_t>(cnAutoManager::state_e::vac_0_on_timeout)+obj_id;
+    m_pAuto->AlarmAuto(static_cast<cnAutoManager::state_e>(err));
+  }
+  return ret;
+}
+int cnProcess::VacOff(uint8_t obj_id, bool skip_sensor )
+{
+  int ret = 0;
+  ret = m_pVac[obj_id].Off(skip_sensor);
+  if (ret != 0)
+  {
+    uint8_t err = static_cast<uint8_t>(cnAutoManager::state_e::vac_0_off_timeout)+obj_id;
+    m_pAuto->AlarmAuto(static_cast<cnAutoManager::state_e>(err));
+  }
+  return ret;
+}
+
+
 bool cnProcess::IsMotorOn()
 {
   return m_pFm->IsMotorOn();
@@ -1844,6 +2118,14 @@ bool cnProcess::IsMotorMoveCplt()
   return m_pFm->IsAxisDone();
 }
 
+void cnProcess::MotorOrigin()
+{
+  if (!IsMotorOn())
+    return ;
+
+  m_step.SetStep(CN_PROCESS_STEP_POS_ORIGIN);
+  m_pre_time = millis();
+}
 
 void cnProcess::MotorOnOff(bool on_off)
 {

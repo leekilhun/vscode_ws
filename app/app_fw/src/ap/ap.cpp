@@ -54,86 +54,167 @@ uint32_t check_pass_ms = 0;
 
 void apInit(void)
 {
-  /* rtos */
-  osThreadDef(threadCmdLcd, threadCmdLcd, _HW_DEF_RTOS_THREAD_PRI_LCD_CMD, 0, _HW_DEF_RTOS_THREAD_MEM_LCD_CMD);
-  if (osThreadCreate(osThread(threadCmdLcd), NULL) != NULL)
+  /* rtos initial*/
   {
-    logPrintf("threadCmdLcd \t\t: OK\r\n");
-  }
-  else
-  {
-    logPrintf("threadCmdLcd \t\t: Fail\r\n");
+    osThreadDef(threadCmdLcd, threadCmdLcd, _HW_DEF_RTOS_THREAD_PRI_LCD_CMD, 0, _HW_DEF_RTOS_THREAD_MEM_LCD_CMD);
+    if (osThreadCreate(osThread(threadCmdLcd), NULL) != NULL)
+    {
+      logPrintf("threadCmdLcd \t\t: OK\r\n");
+    }
+    else
+    {
+      logPrintf("threadCmdLcd \t\t: Fail\r\n");
+    }
+
+    osThreadDef(threadCmdFastechMotor, threadCmdFastechMotor, _HW_DEF_RTOS_THREAD_PRI_FM_CMD, 0, _HW_DEF_RTOS_THREAD_MEM_FM_CMD);
+    if (osThreadCreate(osThread(threadCmdFastechMotor), NULL) != NULL)
+    {
+      logPrintf("threadCmdFastechMotor \t\t: OK\r\n");
+    }
+    else
+    {
+      logPrintf("threadCmdFastechMotor \t\t: Fail\r\n");
+    }
+
+    /**/
+    osThreadDef(threadEvent, threadEvent, _HW_DEF_RTOS_THREAD_PRI_EVENT, 0, _HW_DEF_RTOS_THREAD_MEM_EVENT);
+    if (osThreadCreate(osThread(threadEvent), NULL) != NULL)
+    {
+      logPrintf("threadEvent \t\t: OK\r\n");
+    }
+    else
+    {
+      logPrintf("threadEvent \t\t: Fail\r\n");
+    }
   }
 
-  osThreadDef(threadCmdFastechMotor, threadCmdFastechMotor, _HW_DEF_RTOS_THREAD_PRI_FM_CMD, 0, _HW_DEF_RTOS_THREAD_MEM_FM_CMD);
-  if (osThreadCreate(osThread(threadCmdFastechMotor), NULL) != NULL)
+  /* motor initial */
   {
-    logPrintf("threadCmdFastechMotor \t\t: OK\r\n");
+    enFastechMotor::cfg_t fm_cfg = {0, };
+    fm_cfg.p_apReg = &mcu_reg;
+    fm_cfg.p_apCfgDat = &apCfg_data;
+    fm_cfg.p_apIo = &mcu_io;
+    fm_cfg.p_apDat = &axis_data;
+    fm_cfg.ch = _DEF_UART1;
+    fm_cfg.baud = 115200;
+    fastech_motor.Init(&fm_cfg);
   }
-  else
+  /* cylinder initial */
   {
-    logPrintf("threadCmdFastechMotor \t\t: Fail\r\n");
+    /*phone jig*/
+    enCylinder::cfg_t cyl_cfg = {0, };
+    cyl_cfg.cyl_id = AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG;
+    cyl_cfg.cyl_type = ICylinder::type_e::open_close;
+    cyl_cfg.sol_type = ICylinder::sol_e::two;
+    cyl_cfg.pApIo = (IIO *)&mcu_io;
+    cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::phone_clamp_cyl);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_on);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_off);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_on);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_off);
+
+    cyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].SetConfigData(&cyl_cfg);
+
+    /*drum updown jig*/
+    cyl_cfg.cyl_id = AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN;
+    cyl_cfg.cyl_type = ICylinder::type_e::up_down;
+    cyl_cfg.sol_type = ICylinder::sol_e::two;
+    cyl_cfg.pApIo = (IIO *)&mcu_io;
+    cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::drum_updown_cyl);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_2_on);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_2_off);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_2_on);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_2_off);
+
+    cyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_UPDOWN].SetConfigData(&cyl_cfg);
+
+    /*drum z-down jig*/
+    cyl_cfg.cyl_id = AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP;
+    cyl_cfg.cyl_type = ICylinder::type_e::up_down;
+    cyl_cfg.sol_type = ICylinder::sol_e::two;
+    cyl_cfg.pApIo = (IIO *)&mcu_io;
+    cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::drum_z_up_cyl);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::fm_out_cyl_3_on);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::fm_out_cyl_3_off);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::fm_in_cyl_3_on);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::fm_in_cyl_3_off);
+
+    cyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_Z_UP].SetConfigData(&cyl_cfg);
+
+    /*drum stop jig*/
+    cyl_cfg.cyl_id = AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP;
+    cyl_cfg.cyl_type = ICylinder::type_e::lock_unlock;
+    cyl_cfg.sol_type = ICylinder::sol_e::two;
+    cyl_cfg.pApIo = (IIO *)&mcu_io;
+    cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::drum_stop_cyl);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::fm_out_cyl_4_on);
+    cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::fm_out_cyl_4_off);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::fm_in_cyl_4_on);
+    cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::fm_in_cyl_4_off);
+
+    cyl[AP_DEF_OBJ_CYLINDER_ID_DRUM_STOP].SetConfigData(&cyl_cfg);
   }
 
-  /**/
-  osThreadDef(threadEvent, threadEvent, _HW_DEF_RTOS_THREAD_PRI_EVENT, 0, _HW_DEF_RTOS_THREAD_MEM_EVENT);
-  if (osThreadCreate(osThread(threadEvent), NULL) != NULL)
+  /* vacuum initial */
   {
-    logPrintf("threadEvent \t\t: OK\r\n");
+    /*drum head vacuum*/
+    enVacuum::cfg_t vac_cfg = {0, };
+    vac_cfg.vac_id = AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD;
+    vac_cfg.vac_type = IVacuum::type_e::suction_blow;
+    vac_cfg.pApIo = (IIO *)&mcu_io;
+    vac_cfg.pVacDat = vac_data.GetData(vac_dat::addr_e::peel_drum_vac);
+    vac_cfg.sensor_io = static_cast<uint32_t>(ap_io::in_e::mcu_in_drum_vac_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_off);
+
+    vac[AP_DEF_OBJ_VACUUM_ID_DRUM_HEAD].SetConfigData(&vac_cfg);
+
+    /*drum tail vacuum*/
+    vac_cfg.vac_id = AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL;
+    vac_cfg.vac_type = IVacuum::type_e::suction_blow;
+    vac_cfg.pApIo = (IIO *)&mcu_io;
+    vac_cfg.pVacDat = vac_data.GetData(vac_dat::addr_e::peel_drum_tail_vac);
+    vac_cfg.sensor_io = static_cast<uint32_t>(ap_io::in_e::mcu_in_drum_tail_vac_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_2_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_2_off);
+
+    vac[AP_DEF_OBJ_VACUUM_ID_DRUM_TAIL].SetConfigData(&vac_cfg);
+
+    /*phone jig vacuum*/
+    vac_cfg.vac_id = AP_DEF_OBJ_VACUUM_ID_PHONE_JIG;
+    vac_cfg.vac_type = IVacuum::type_e::suction_blow;
+    vac_cfg.pApIo = (IIO *)&mcu_io;
+    vac_cfg.pVacDat = vac_data.GetData(vac_dat::addr_e::peel_phone_jig);
+    vac_cfg.sensor_io = static_cast<uint32_t>(ap_io::in_e::mcu_in_phonejig_vac_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::fm_out_vac_3_on);
+    vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::fm_out_vac_3_off);
+
+    vac[AP_DEF_OBJ_VACUUM_ID_PHONE_JIG].SetConfigData(&vac_cfg);
   }
-  else
+
+  /* automanager initial */
   {
-    logPrintf("threadEvent \t\t: Fail\r\n");
+    cnAutoManager::cfg_t auto_cfg ={0,};
+    auto_cfg.p_apReg = &mcu_reg;
+    autoManager.Init(auto_cfg);
   }
-
-
-  /*Initialize */
-  enFastechMotor::cfg_t fm_cfg = {0, };
-  fm_cfg.p_apReg = &mcu_reg;
-  fm_cfg.p_apIo = &mcu_io;
-  fm_cfg.p_apDat = &axis_data;
-  fm_cfg.ch = _DEF_UART1;
-  fm_cfg.baud = 115200;
-  fastech_motor.Init(&fm_cfg);
-
-  enCylinder::cfg_t cyl_cfg = {0, };
-  cyl_cfg.cyl_id = 0;
-  cyl_cfg.cyl_type = ICylinder::type_e::up_down;
-  cyl_cfg.sol_type = ICylinder::sol_e::two;
-  cyl_cfg.pApIo = (IIO *)&mcu_io;
-  cyl_cfg.pCylDat = cyl_data.GetData(cyl_dat::addr_e::phone_clamp_cyl);
-  cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_UP] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_on);
-  cyl_cfg.sensor_io[EN_CYLINDER_SENSOR_DOWN] = static_cast<uint32_t>(ap_io::out_e::mcu_out_cyl_1_off);
   
-  cyl_cfg.sol_io[EN_CYLINDER_SOL_UP] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_on);
-  cyl_cfg.sol_io[EN_CYLINDER_SOL_DOWN] = static_cast<uint32_t>(ap_io::in_e::mcu_in_cyl_1_off);
-  
-
-  cyl[AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG].SetConfigData(&cyl_cfg);
-
-  enVacuum::cfg_t vac_cfg = {0, };
-  vac_cfg.vac_id = 0;
-  vac_cfg.vac_type = IVacuum::type_e::suction_blow;
-  vac_cfg.pApIo = (IIO *)&mcu_io;
-  vac_cfg.pVacDat = vac_data.GetData(vac_dat::addr_e::peel_drum_vac);
-  vac_cfg.sensor_io = static_cast<uint32_t>(ap_io::in_e::mcu_in_vac_on);
-  vac_cfg.sol_io[EN_VACUUM_SOL_SUCTION] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_on);
-  vac_cfg.sol_io[EN_VACUUM_SOL_BLOW] = static_cast<uint32_t>(ap_io::out_e::mcu_out_vac_1_off);
-
-  vac[AP_DEF_OBJ_VACUUM_ID_PHONE_JIG].SetConfigData(&vac_cfg);
-
-  cnProcess::cfg_t prc_cfg = {0,};
-  prc_cfg.p_apReg = &mcu_reg;
-  prc_cfg.p_apIo = &mcu_io;
-  prc_cfg.p_Fm = &fastech_motor;
-  prc_cfg.p_AutoManger = &autoManager;
-  prc_cfg.p_apAxisDat =&axis_data;
-  prc_cfg.p_apCylDat =&cyl_data;
-  prc_cfg.p_apVacDat =&vac_data;
-  prc_cfg.p_apCfgDat = &apCfg_data;
-  prc_cfg.p_apSeqDat = &seq_data;
-  process.Init(&prc_cfg);
-
+  /* sequence process initial */
+  {
+    cnProcess::cfg_t prc_cfg = {0,};
+    prc_cfg.p_apReg = &mcu_reg;
+    prc_cfg.p_apIo = &mcu_io;
+    prc_cfg.p_Fm = &fastech_motor;
+    prc_cfg.p_Cyl = cyl;
+    prc_cfg.p_Vac = vac;
+    prc_cfg.p_AutoManger = &autoManager;
+    prc_cfg.p_apAxisDat =&axis_data;
+    prc_cfg.p_apCylDat =&cyl_data;
+    prc_cfg.p_apVacDat =&vac_data;
+    prc_cfg.p_apCfgDat = &apCfg_data;
+    prc_cfg.p_apSeqDat = &seq_data;
+    process.Init(&prc_cfg);
+  }
 
 }
 
@@ -338,11 +419,6 @@ void threadCmdFastechMotor(void const *argument)
 }
 
 
-
-
-
-
-
 void eventOpPanel()
 {
   if (opPanel_GetPressed(OP_SWITCH_ESTOP))
@@ -427,7 +503,7 @@ void updateLamp()
 
 void updateErr()
 {
-// Check the error status of the constructed uint
+// Check the error status of the constructed unit
 // auto run 상태의 process-step 운영에서 발생되는 에러 정지는 포함하지 않는다
   if (mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_NO_RESP_MOT])
   {

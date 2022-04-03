@@ -182,43 +182,43 @@ public:
   }
 
   int Left(bool skip_sensor = false){
-    return Up();
+    return Up(skip_sensor);
   }
 
   int Right(bool skip_sensor = false){
-    return Down();
+    return Down(skip_sensor);
   }
 
   int Forward(bool skip_sensor = false){
-    return Up();
+    return Up(skip_sensor);
   }
 
   int Backward(bool skip_sensor = false){
-    return Down();
+    return Down(skip_sensor);
   }
 
   int Open(bool skip_sensor = false){
-    return Up();
+    return Up(skip_sensor);
   }
 
   int Close(bool skip_sensor = false){
-    return Down();
+    return Down(skip_sensor);
   }
 
   int Lock(bool skip_sensor = false){
-    return Up();
+    return Up(skip_sensor);
   }
 
   int Unlock(bool skip_sensor = false){
-    return Down();
+    return Down(skip_sensor);
   }
 
   int Return(bool skip_sensor = false){
-    return Up();
+    return Up(skip_sensor);
   }
 
   int Turn(bool skip_sensor = false){
-    return Down();
+    return Down(skip_sensor);
   }
 
   /*----------- 실린더 이동 시작  -----------------------*/
@@ -230,7 +230,7 @@ public:
   int Wait4UpCplt(){
     int ret = -1;
     uint32_t pre_ms = millis();
-    while((millis() - pre_ms) < uint32_t(m_Cfg.pCylDat->timeout)) {
+    while((millis() - pre_ms) < (uint32_t)(m_Cfg.pCylDat->timeout)) {
       if(IsUp()){
         ret = 0;
         break;
@@ -242,7 +242,7 @@ public:
   int Wait4DownCplt(){
     int ret = -1;
     uint32_t pre_ms = millis();
-    while((millis() - pre_ms) < uint32_t(m_Cfg.pCylDat->timeout)) {
+    while((millis() - pre_ms) < (uint32_t)(m_Cfg.pCylDat->timeout)) {
       if(IsDown()){
         ret = 0;
         break;

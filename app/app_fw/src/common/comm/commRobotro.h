@@ -18,7 +18,7 @@
 #ifdef _USE_HW_CMD_ROBOTRO
 
 #define RBTRO_CMD_MAX_DATA_LENGTH                  46
-#define RBTRO_CMD_MAX_PACKET_BUFF_LENGTH           RBTRO_CMD_MAX_DATA_LENGTH + 5
+#define RBTRO_CMD_MAX_PACKET_BUFF_LENGTH           (RBTRO_CMD_MAX_DATA_LENGTH + 5)
 
    typedef struct
    {

@@ -127,7 +127,7 @@ public:
   int Wait4OnCplt(){
     int ret = -1;
     uint32_t pre_ms = millis();
-    while((millis() - pre_ms) < uint32_t(m_Cfg.pVacDat->timeout)) {
+    while((millis() - pre_ms) < (uint32_t)(m_Cfg.pVacDat->timeout)) {
       if(IsOn()){
         ret = 0;
         break;
@@ -139,7 +139,7 @@ public:
   int Wait4OffCplt(){
     int ret = -1;
     uint32_t pre_ms = millis();
-    while((millis() - pre_ms) < uint32_t(m_Cfg.pVacDat->timeout)) {
+    while((millis() - pre_ms) < (uint32_t)(m_Cfg.pVacDat->timeout)) {
       if(IsOff()){
         ret = 0;
         break;

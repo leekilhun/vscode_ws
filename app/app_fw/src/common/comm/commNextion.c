@@ -101,7 +101,7 @@ void crc_update(uint16_t* crc_in, uint8_t data)
 bool cmdNextion_ReceivePacket(nextion_t *p_cmd)
 {
   bool ret = false;
-  uint8_t rx_data;
+  uint8_t rx_data = 0;
 
   if (uartAvailable(p_cmd->ch) > 0)
   {
@@ -169,7 +169,10 @@ bool cmdNextion_ReceivePacket(nextion_t *p_cmd)
   break;
   case NX_LCD_CMD_STATE_REPLY_PAGE_NO:
   {
-    p_cmd->rx_packet.page_no = (nextionpage_t)rx_data;
+    if (rx_data <= (uint8_t)(NEX_PAGE_LOG))
+    {
+      p_cmd->rx_packet.page_no = (nextionpage_t)rx_data;
+    }
     p_cmd->state = NX_LCD_CMD_STATE_WAIT_STX;
     ret = true;
   }
@@ -190,6 +193,12 @@ bool cmdNextion_ReceivePacket(nextion_t *p_cmd)
     if (p_cmd->rx_packet.type == NX_LCD_RXCMD_TYPE_CURR_PAGE_NO)
     {
       p_cmd->state = NX_LCD_CMD_STATE_WAIT_CHECKSUM;
+      break;
+    }
+    else if (p_cmd->rx_packet.type == NX_LCD_RXCMD_TYPE_REQ_BEEP)
+    {
+      p_cmd->state = NX_LCD_CMD_STATE_WAIT_STX;
+      ret = true;
       break;
     }
 
@@ -378,6 +387,11 @@ bool cmdNextion_SendCmd(nextion_t *p_cmd, uint8_t cmd, uint8_t *p_data, uint32_t
     {
       sprintf((char*)temp, "nDatCnt.val=1");
       ret =true;
+    }
+    break;
+    case NX_LCD_TXCMD_TYPE_POP_ALARM_MSG:
+    {
+
     }
     break;
     default:

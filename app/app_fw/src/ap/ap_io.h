@@ -71,20 +71,21 @@ class ap_io:public IIO
 public:
   enum class in_e {
     mcu_in_cyl_1_on, mcu_in_cyl_1_off, mcu_in_cyl_2_on, mcu_in_cyl_2_off,
-    mcu_in_vac_on, in05, in06, in07,  // b0 mcu   in00 ~ 07
+    mcu_in_drum_vac_on, mcu_in_drum_tail_vac_on, mcu_in_phonejig_vac_on, in07,  // b0 mcu   in00 ~ 07
     in10, in11, in12, in13, in14, in15, in16, in17,  // b1 mcu   in10 ~ 17
-    in20, in21, in22, in23, in24, in25, in26, in27,  // b2 motor in00 ~ 07
+    fm_in_cyl_3_on, fm_in_cyl_3_off, fm_in_cyl_4_on, fm_in_cyl_4_off,
+    in24, in25, in26, in27,  // b2 motor in00 ~ 07
     in30, in31, in32, in33, in34, in35, in36, in37,  // b3 motor in10 ~ 17
     _max
   };
 
   enum class out_e {
     mcu_out_cyl_1_on, mcu_out_cyl_1_off, mcu_out_cyl_2_on, mcu_out_cyl_2_off,
-    mcu_out_vac_1_on, mcu_out_vac_1_off, mcu_out06, mcu_out07,  // b0 mcu   out00 ~ 07
+    mcu_out_vac_1_on, mcu_out_vac_1_off, mcu_out_vac_2_on, mcu_out_vac_2_off,  // b0 mcu   out00 ~ 07
     mcu_lamp_start, mcu_lamp_stop, mcu_lamp_reset,
     out13, out14, out15, out16, out17,  // b1 mcu   out10 ~ 17
-    fm_out00, fm_out01, fm_out02, fm_out03,
-    fm_out04, fm_out05, fm_out06, fm_out07,  // b2 motor out00 ~ 07
+    fm_out_cyl_3_on, fm_out_cyl_3_off, fm_out_cyl_4_on, fm_out_cyl_4_off,
+    fm_out_vac_3_on, fm_out_vac_3_off, fm_out_vac_4_on, fm_out_vac_4_off,  // b2 motor out00 ~ 07
     fm_out10, fm_out11, fm_out12, fm_out13,
     fm_out14, fm_out15, fm_out16, fm_out17,  // b3 motor out10 ~ 17
     _max
@@ -123,10 +124,10 @@ public:
       case out_e::mcu_out_vac_1_off:
         gpioPinWrite(_GPIO_IO_OUT_06, onoff);
         break;
-      case out_e::mcu_out06:
+      case out_e::mcu_out_vac_2_on:
         gpioPinWrite(_GPIO_IO_OUT_07, onoff);
         break;
-      case out_e::mcu_out07:
+      case out_e::mcu_out_vac_2_off:
         gpioPinWrite(_GPIO_IO_OUT_08, onoff);
         break;
       case out_e::mcu_lamp_start:
@@ -148,14 +149,14 @@ public:
         break;
       case out_e::out17:
         break;
-      case out_e::fm_out00:
-      case out_e::fm_out01:
-      case out_e::fm_out02:
-      case out_e::fm_out03:
-      case out_e::fm_out04:
-      case out_e::fm_out05:
-      case out_e::fm_out06:
-      case out_e::fm_out07:
+      case out_e::fm_out_cyl_3_on:
+      case out_e::fm_out_cyl_3_off:
+      case out_e::fm_out_cyl_4_on:
+      case out_e::fm_out_cyl_4_off:
+      case out_e::fm_out_vac_3_on:
+      case out_e::fm_out_vac_3_off:
+      case out_e::fm_out_vac_4_on:
+      case out_e::fm_out_vac_4_off:
       case out_e::fm_out10:
       {
         if (onoff)
