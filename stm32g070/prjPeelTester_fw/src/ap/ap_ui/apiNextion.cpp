@@ -88,6 +88,10 @@
 #define UI_NEXTION_STEP_WRITE_AP_CFG_START            52
 #define UI_NEXTION_STEP_WRITE_AP_CFG_WAIT             53
 #define UI_NEXTION_STEP_WRITE_AP_CFG_END              54
+#define UI_NEXTION_STEP_OK_RESPONSE                   55
+#define UI_NEXTION_STEP_OK_RESPONSE_START             56
+#define UI_NEXTION_STEP_OK_RESPONSE_WAIT              57
+#define UI_NEXTION_STEP_OK_RESPONSE_END               58
 
 #define UI_NEXTION_STEP_DATA_RECEIVE_CNT_RESET        99
 
@@ -105,7 +109,9 @@
 #define UI_NEXTION_DEF_OUT_TYPE_FM                    0x01
 
 #define UI_NEXTION_BUFF_ASSIGN_OUT_TYPE               0x00
-#define UI_NEXTION_BUFF_ASSIGN_OUT_DATA               0x01
+#define UI_NEXTION_BUFF_ASSIGN_OUT_ADDR               0x01
+#define UI_NEXTION_BUFF_ASSIGN_OUT_ONOFF              0x02
+#define UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR            0x08
 
 // extern uint32_t check_pass_ms;
 
@@ -170,6 +176,7 @@ int uiNextionLcd::Init(uiNextionLcd::cfg_t *cfg)
 
 void uiNextionLcd::okResponse()
 {
+  cmdNextion_SendCmd(&m_Packet,NX_LCD_TXCMD_TYPE_OK_RESPONSE, 0, 0);
 }
 
 void uiNextionLcd::cbUpdateReg(void *obj)
@@ -224,8 +231,9 @@ void uiNextionLcd::ProcessCmd()
   case NX_LCD_RXCMD_TYPE_WRITE_OUT_REG:
   {
     m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_TYPE] = m_Packet.rx_packet.data[0];
-    m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_DATA] = m_Packet.rx_packet.data[2];
-
+    m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_ADDR] = m_Packet.rx_packet.data[1];
+    m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_ONOFF] = m_Packet.rx_packet.data[2];
+    
     m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT);
     m_pre_time = millis();
   }
@@ -1381,51 +1389,35 @@ void uiNextionLcd::doRunStep()
   {
     m_retryCnt = 0;
     m_lockSendMsg = true;
-    m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_START);
+    m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR] = (uint8_t)UI_NEXTION_STEP_WRITE_IO_REG_OUT_START;
+    m_step.SetStep(UI_NEXTION_STEP_OK_RESPONSE);
     m_pre_time = millis();
   }
   break;
   case UI_NEXTION_STEP_WRITE_IO_REG_OUT_START:
   {
-    if (m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_TYPE] == UI_NEXTION_DEF_OUT_TYPE_MCU)
+
+    uint32_t addr = 0;
+    addr = m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_ADDR] + (m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_TYPE]) * 16;
+    if (m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_ONOFF])
     {
-      m_pApIo->SetBank_Out(AP_IO_DEF_BANK_OUT_0, m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_DATA]);
+      m_pApIo->OutputOn(addr);
     }
-    else // m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_TYPE]==UI_NEXTION_DEF_OUT_TYPE_FM
+    else
     {
-      m_pApIo->SetBank_Out(AP_IO_DEF_BANK_OUT_2, m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_DATA]);
+      m_pApIo->OutputOff(addr);
     }
+
     m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT);
     m_pre_time = millis();
   }
   break;
   case UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT:
   {
-    if (millis() - m_pre_time >= 50)
-    {
-      if (m_retryCnt++ < UI_NEXTION_STEP_RETRY_CNT_MAX)
-      {
-        m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_START);
-        m_pre_time = millis();
-      }
-      else
-      {
-        m_retryCnt = 0;
-        m_step.SetStep(UI_NEXTION_STEP_TIMEOUT);
-        m_pre_time = millis();
-      }
-    }
+    if (millis() - m_pre_time < 10)
+      break;
 
-    bool is_equal = false;
-    if (m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_TYPE] == UI_NEXTION_DEF_OUT_TYPE_MCU)
-    {
-      is_equal = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_0) == m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_DATA];
-    }
-    else
-    {
-      is_equal = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_2) == m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_OUT_DATA];
-    }
-    if (is_equal)
+    if (1)
     {
       m_step.SetStep(UI_NEXTION_STEP_WRITE_IO_REG_OUT_END);
       m_pre_time = millis();
@@ -1434,13 +1426,48 @@ void uiNextionLcd::doRunStep()
   break;
   case UI_NEXTION_STEP_WRITE_IO_REG_OUT_END:
   {
-    // if (millis() - m_pre_time < 5)
-    //   break;
-
     m_step.SetStep(UI_NEXTION_STEP_TODO);
     m_pre_time = millis();
   }
   break;
+
+  /*######################################################
+    UI_NEXTION_STEP_OK_RESPONSE
+    ######################################################*/
+  case UI_NEXTION_STEP_OK_RESPONSE:
+  {
+    m_retryCnt = 0;
+    m_lockSendMsg = true;
+    cmdNextion_SendCmd(&m_Packet, NX_LCD_TXCMD_TYPE_LCD_END_REPARSEMODE, 0, 0);
+
+    m_step.SetStep(UI_NEXTION_STEP_OK_RESPONSE_START);
+    m_pre_time = millis();
+  }
+  break;
+  case UI_NEXTION_STEP_OK_RESPONSE_START:
+  {
+    if (millis() - m_pre_time < 5)
+      break;
+
+    okResponse();
+    m_step.SetStep(m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
+    m_pre_time = millis();
+  }
+  break;
+  case UI_NEXTION_STEP_OK_RESPONSE_WAIT:
+  {
+    if (millis() - m_pre_time < 5)
+      break;
+
+    m_step.SetStep(UI_NEXTION_STEP_OK_RESPONSE_END);
+    m_pre_time = millis();
+  }
+  break;
+  case UI_NEXTION_STEP_OK_RESPONSE_END:
+  {
+    m_step.SetStep(m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
+    m_pre_time = millis();
+  }
 
   /*######################################################
      UI_NEXTION_STEP_DATA_RECEIVE_CNT_RESET
@@ -1468,7 +1495,13 @@ bool uiNextionLcd::CheckCommLcdCfg()
 
 void uiNextionLcd::SendMotorData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_MOTOR_POS);
+    m_pre_time = millis();
+  }
 }
+
 int uiNextionLcd::SaveMotorData()
 {
   return 0;
@@ -1476,38 +1509,98 @@ int uiNextionLcd::SaveMotorData()
 
 void uiNextionLcd::SendAxisIoData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_AXIS_IO_DAT);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendApReg()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_AP_REG);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendApIoReg()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_IO_REG);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendApCfgData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_AP_DAT);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendCylinderData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_CYL_DAT);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendVacuumData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_VAC_DAT);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendSequenceData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_SEQ_DAT);
+    m_pre_time = millis();
+  }
 }
+
 void uiNextionLcd::SendLogData()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_LOG_DAT);
+    m_pre_time = millis();
+  }
 }
 
 void uiNextionLcd::SendDataAll()
 {
+  if (m_step.GetStep() == UI_NEXTION_STEP_TODO)
+  {
+    m_step.SetStep(UI_NEXTION_STEP_DATA_SEND_ALL);
+    m_pre_time = millis();
+  }
 }
 void uiNextionLcd::ClearDataAll()
 {
+  m_pApAxisDat->ClearRomData();
+  m_pApCylDat->ClearRomData();
+  m_pApVacDat->ClearRomData();
+  m_pApSeqDat->ClearRomData();
+  m_pApCfgDat->ClearRomData();
 }
 int uiNextionLcd::ChangePage(nextionpage_t page)
 {
-  return 0;
+  int ret = 0;
+  ret = static_cast<int>(page);
+  cmdNextion_SendCmd(&m_Packet, NX_LCD_TXCMD_TYPE_LCD_CHANGE_PAGE, (uint8_t *)&ret, 1);
+  return ret;
 }
 
 nextionpage_t uiNextionLcd::GetcurrPage() const

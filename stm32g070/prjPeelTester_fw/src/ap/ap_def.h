@@ -14,7 +14,6 @@
 #include "ap_dat.h"
 #include "ap_reg.h"
 #include "ap_evt.h"
-#include "ap_io.h"
 #include "ap_log.h"
 
 /* interface object*/
@@ -23,6 +22,8 @@
 #include "interface/ivacuum.h"
 #include "interface/icylinder.h"
 
+/* ap io °ü¸® °´Ã¼*/
+#include "ap_io.h"
 
 /* state machine data*/
 struct prc_step_t
