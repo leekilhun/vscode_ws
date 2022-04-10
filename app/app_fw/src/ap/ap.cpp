@@ -536,6 +536,18 @@ void updateErr()
     errCnt = 0;
     mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_CLEAR] = true;
     refresh_time = 1000;
+    //process(sequence) alarm 상태를 체크
+    if (mcu_reg.GetAlarmState() !=0)
+    {
+      mcu_reg.SetRunState(AP_REG_ALARM_STATUS, true);
+    }
+    else
+    {
+      mcu_reg.SetRunState(AP_REG_ALARM_STATUS, false);
+    }
+
+
+
   }
 }
 

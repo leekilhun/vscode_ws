@@ -185,7 +185,7 @@ private:
 
   int update_AxisState();
 
-  void set_UserOutput(uint32_t mask_on, uint32_t mask_off);
+  bool set_UserOutput(uint32_t mask_on, uint32_t mask_off);
 
 public:
   /* Axis  함수*/

@@ -272,12 +272,16 @@ public:
 
   /* IO  함수*/
   inline void SetBank_Out(uint8_t bank, uint8_t val){
+    uint8_t base = 0;
+    base = out[bank].get();
     for(uint8_t i =0; i < 8; i++)
     {
-      uint8_t check = val&bit(i);
-      bool is_on = check > 0;
-
-      SetGpioOut(static_cast<out_e>(8*bank + i), is_on);
+      if ((((val>>i)^(base>>i))&bit(0)))
+      {
+        uint8_t check = val&bit(i);
+        bool is_on = check > 0?true:false;
+        SetGpioOut(static_cast<out_e>(8*bank + i), is_on);
+      }
     }
     out[bank] = val;
   }

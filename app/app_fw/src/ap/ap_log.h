@@ -8,9 +8,7 @@
 #ifndef SRC_AP_AP_LOG_H_
 #define SRC_AP_AP_LOG_H_
 
-#ifdef _USE_HW_RTOS
-static osMutexId ap_log_mutex_id;
-#endif
+
 
 
 #ifdef _USE_HW_RTOS
@@ -31,6 +29,9 @@ class ap_log
   log_dat m_log;
 
   uint8_t m_Head, m_Tail;
+#ifdef _USE_HW_RTOS
+  osMutexId ap_log_mutex_id;
+#endif
 
   /****************************************************
    *  Constructor

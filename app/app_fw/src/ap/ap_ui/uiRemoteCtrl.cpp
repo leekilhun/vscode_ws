@@ -188,7 +188,7 @@ void uiRemoteCtrl::ProcessCmd()
       break;
 
     case UI_REMOTECTRL_CMD_READ_ALL_STATE:
-        m_step.SetStep(UI_REMOTECTRL_STEP_SEND_MCU_ALL_DATA);
+      m_step.SetStep(UI_REMOTECTRL_STEP_SEND_MCU_ALL_DATA);
       break;
 
     case UI_REMOTECTRL_CMD_READ_BOOT_INFO:
@@ -199,6 +199,7 @@ void uiRemoteCtrl::ProcessCmd()
 
     case UI_REMOTECTRL_CMD_CONTROL_IO_OUT:
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT);
+      okResponse();
       break;
 
     case UI_REMOTECTRL_CMD_CONTROL_MOT_JOG:
@@ -265,7 +266,7 @@ void uiRemoteCtrl::ProcessCmd()
       m_stepBuffer[0] = m_Packet.rx_packet.data[0];
 
       memcpy(&m_stepBuffer[1],&ret_value,sizeof(int));
-      //okResponse();
+      okResponse();
       retGetValue(&m_stepBuffer[0],sizeof(int)+1);
     }
     break;
@@ -274,7 +275,7 @@ void uiRemoteCtrl::ProcessCmd()
     {
       int value = utilDwToInt(&m_Packet.rx_packet.data[1]);
       m_pFm->SetMotorParameter(m_Packet.rx_packet.data[0],value);
-      //okResponse();
+      okResponse();
     }
     break;
 
@@ -309,6 +310,8 @@ void uiRemoteCtrl::ProcessCmd()
       //cmdRobotro_SendCmd(m_pCmd, m_pCmd->rx_packet.cmd_type, UI_REMOTECTRL_ERR_WRONG_CMD, NULL);
       break;
   }
+
+  //okResponse();
   m_pre_time = millis();
 }
 
@@ -501,12 +504,21 @@ void uiRemoteCtrl::doRunStep()
     case UI_REMOTECTRL_STEP_CTRL_IO_OUT_START:
     {
       /* io control*/
-      if (m_Packet.rx_packet.length == 4)
+      /*if (m_Packet.rx_packet.length == 4)
       {
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_0,m_Packet.rx_packet.data[0]);
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_1,m_Packet.rx_packet.data[1]);
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_2,m_Packet.rx_packet.data[2]);
         m_pApIo->SetBank_Out(AP_IO_DEF_BANK_NO_3,m_Packet.rx_packet.data[3]);
+      }*/
+      uint32_t addr = utilDwToUint(&m_Packet.rx_packet.data[1]);
+      if (m_Packet.rx_packet.data[0])
+      {
+        m_pApIo->OutputOn(addr);
+      }
+      else
+      {
+        m_pApIo->OutputOff(addr);
       }
       m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT_WAIT);
       m_pre_time = millis();
@@ -515,6 +527,10 @@ void uiRemoteCtrl::doRunStep()
     break;
     case UI_REMOTECTRL_STEP_CTRL_IO_OUT_WAIT:
     {
+      if (millis()-m_pre_time < 50)
+        break;
+
+      /*
       if (millis()-m_pre_time >= 50)
       {
         if (m_retryCnt++ < UI_REMOTECTRL_STEP_RETRY_CNT_MAX)
@@ -533,8 +549,8 @@ void uiRemoteCtrl::doRunStep()
       bool is_equal = m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_0) == m_Packet.rx_packet.data[0];
       is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_1) == m_Packet.rx_packet.data[1];
       is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_2) == m_Packet.rx_packet.data[2];
-      is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_3) == m_Packet.rx_packet.data[3];
-      if (is_equal)
+      is_equal &= m_pApIo->GetBank_Out(AP_IO_DEF_BANK_OUT_3) == m_Packet.rx_packet.data[3];*/
+      if (1)
       {
         m_step.SetStep(UI_REMOTECTRL_STEP_CTRL_IO_OUT_END);
         m_pre_time = millis();

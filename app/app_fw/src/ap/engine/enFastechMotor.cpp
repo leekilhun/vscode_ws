@@ -12,7 +12,7 @@
 //extern uint32_t check_pass_ms;
 
 
-enFastechMotor::enFastechMotor (uint8_t id = 0):m_AxisId(id)
+enFastechMotor::enFastechMotor (uint8_t id):m_AxisId(id)
 {
   m_pApReg = NULL;
   m_pApIo = NULL;
@@ -384,8 +384,9 @@ int  enFastechMotor::ClearState()
 }
 
 
-void enFastechMotor::set_UserOutput(uint32_t mask_on, uint32_t mask_off)
+bool enFastechMotor::set_UserOutput(uint32_t mask_on, uint32_t mask_off)
 {
+  bool ret = false;
   uint8_t data[9] ={0,};
   data[0] = DEF_FASTECH_COMM_TYPE_SET_IO_OUT_REG;
   data[1] = mask_on>>0;
@@ -397,7 +398,23 @@ void enFastechMotor::set_UserOutput(uint32_t mask_on, uint32_t mask_off)
   data[7] = mask_off>>16;
   data[8] = mask_off>>24;
 
-  cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
+  ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
+  uint32_t pass_ms = millis();
+  uint8_t retry_cnt = 0;
+
+  m_Packet.rx_packet.response = 0xfe;
+  while(m_Packet.rx_packet.response)
+  {
+    if ((millis() - pass_ms) > 100)
+    {
+      if (retry_cnt++ == 3)
+        break;
+      else
+        ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
+      pass_ms = millis();
+    }
+  }
+  return ret;
 }
 
 

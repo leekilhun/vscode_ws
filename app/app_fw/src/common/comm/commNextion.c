@@ -391,7 +391,12 @@ bool cmdNextion_SendCmd(nextion_t *p_cmd, uint8_t cmd, uint8_t *p_data, uint32_t
     break;
     case NX_LCD_TXCMD_TYPE_POP_ALARM_MSG:
     {
-
+    }
+    break;
+    case NX_LCD_TXCMD_TYPE_OK_RESPONSE:
+    {
+      sprintf((char*)temp, "isResp.val=1");
+      ret =true;
     }
     break;
     default:

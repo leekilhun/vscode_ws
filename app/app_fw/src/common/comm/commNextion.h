@@ -59,6 +59,7 @@
 #define NX_LCD_TXCMD_TYPE_LCD_REQUSET_PAGE          0x15
 #define NX_LCD_TXCMD_TYPE_LCD_RESET_RECEIVE_CNT     0x16
 #define NX_LCD_TXCMD_TYPE_POP_ALARM_MSG             0x50
+#define NX_LCD_TXCMD_TYPE_OK_RESPONSE               0x70
 
 #define NX_LCD_REPLY_BKCMD_OK                       0x66
 #define NX_LCD_REPLY_GETVALUE_TXT                   0x70

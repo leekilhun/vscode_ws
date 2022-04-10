@@ -66,7 +66,7 @@ void cnAutoManager::ResetSw()
 {
   SetOPMode(OP_MODE_STOP);
   SetOPStatus(OP_STEP_STOP);
-  m_pApReg->SetRunState(AP_REG_ALARM_STATUS,false);
+  m_pApReg->ClearAlarmState();
   m_checkReady = false;
 }
 
@@ -94,12 +94,47 @@ void cnAutoManager::StartSw()
 }
 
 
-void cnAutoManager::AlarmAuto(state_e err)
+void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
 {
   //m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ALARM_STATUS]=true;
   //m_pApReg->SetRunState(AP_REG_ALARM_STATUS);
+  switch (err)
+  {
+    case cnAutoManager::state_e::mcu_unit_err:
+    case cnAutoManager::state_e::seq_initial_timeout:
+    case cnAutoManager::state_e::emg_stop:
+    case cnAutoManager::state_e::error_stop:
+      break;
 
-  m_pApReg->SetRunState(AP_REG_ALARM_STATUS, true);
+    case cnAutoManager::state_e::servo_on_err:
+    case cnAutoManager::state_e::servo_off_err:
+    case cnAutoManager::state_e::axis_origin_err:
+      break;
+    case cnAutoManager::state_e::axis_move_timeout:
+    case cnAutoManager::state_e::axis_stop_timeout:
+      break;
+    case cnAutoManager::state_e::cyl_0_open_timeout:
+    case cnAutoManager::state_e::cyl_1_open_timeout:
+    case cnAutoManager::state_e::cyl_2_open_timeout:
+    case cnAutoManager::state_e::cyl_3_open_timeout:
+    case cnAutoManager::state_e::cyl_0_close_timeout:
+    case cnAutoManager::state_e::cyl_1_close_timeout:
+    case cnAutoManager::state_e::cyl_2_close_timeout:
+    case cnAutoManager::state_e::cyl_3_close_timeout:
+      m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_CYL_TIMEOUT]=true;
+      break;
+    case cnAutoManager::state_e::vac_0_on_timeout:
+    case cnAutoManager::state_e::vac_1_on_timeout:
+    case cnAutoManager::state_e::vac_2_on_timeout:
+    case cnAutoManager::state_e::vac_0_off_timeout:
+    case cnAutoManager::state_e::vac_1_off_timeout:
+    case cnAutoManager::state_e::vac_2_off_timeout:
+      m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_VAC_TIMEOUT]=true;
+      break;
+    default:
+      break;
+  }
+  //m_pApReg->SetRunState(AP_REG_ALARM_STATUS, true);
 }
 
 

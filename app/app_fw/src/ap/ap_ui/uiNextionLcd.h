@@ -80,6 +80,7 @@ public:
 private:
   static void updateLcdReg(void* obj);
   void doRunStep();
+  void okResponse();
 public:
   bool ThreadJob();
   int Init(uiNextionLcd::cfg_t* cfg);

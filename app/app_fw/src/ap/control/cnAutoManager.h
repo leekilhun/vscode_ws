@@ -138,7 +138,7 @@ public:
   void StopSw();
   void ResetSw();
   void UiStarSw();
-  void AlarmAuto(state_e err);
+  void AlarmAuto(cnAutoManager::state_e err);
   opMode GetOPMode();
   opStatus GetOPStatus();
   void SetOPMode(opMode mode);
