@@ -5,6 +5,12 @@
  *      Author: gns2l
  */
 
+
+#ifndef SRC_AP_CONTROL_CNAUTOMANAGER_H_
+#define SRC_AP_CONTROL_CNAUTOMANAGER_H_
+
+
+
 #define CN_AUTOMANAGER_STEP_RETRY_CNT_MAX               3
 
 #define CN_AUTOMANAGER_STEP_INIT                        0
@@ -18,8 +24,9 @@
 #define CN_AUTOMANAGER_STEP_END                         255
 
 
-#ifndef SRC_AP_CONTROL_CNAUTOMANAGER_H_
-#define SRC_AP_CONTROL_CNAUTOMANAGER_H_
+#define AUTO_ALARM(head, msg)  AlarmAuto(head, (__FILE__), __FUNCTION__, __LINE__,  msg)
+
+
 
 class cnAutoManager
 {
@@ -56,6 +63,8 @@ public:
     vac_0_off_timeout,
     vac_1_off_timeout,
     vac_2_off_timeout,
+
+    cyl_interlock_State,
   };
 
 
@@ -100,9 +109,14 @@ public:
   };
 
   struct cfg_t  {
+    ap_log* p_apLog;
     Ap_reg* p_apReg;
+    IIO * p_ApIo;
   };
+  ap_log* m_pApLog;
   Ap_reg* m_pApReg;
+  IIO * m_pApIo;
+
 private:
   opMode m_OpMode;
   opStatus m_OpStatus;
@@ -112,6 +126,7 @@ private:
   prc_step_t  m_step;
   sw_t m_pushSw[static_cast<uint8_t>(sw_e::_max)];
   bool m_FlagStartSw;
+  bool m_IsDetectedPauseSensor;
 
   /****************************************************
    *  Constructor
@@ -137,12 +152,19 @@ public:
   void StartSw();
   void StopSw();
   void ResetSw();
+  void PauseStop();
   void UiStarSw();
   void AlarmAuto(cnAutoManager::state_e err);
+  void AlarmAuto(log_dat::head_t *p_head,
+    const char* file,
+    const char* func,
+    const int line,
+    const char* msg);
   opMode GetOPMode();
   opStatus GetOPStatus();
   void SetOPMode(opMode mode);
   void SetOPStatus(opStatus status);
+  bool IsDetectAreaSensor();
 };
 
 #endif /* SRC_AP_CONTROL_CNAUTOMANAGER_H_ */

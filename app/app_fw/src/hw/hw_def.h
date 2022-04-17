@@ -16,10 +16,10 @@
 
 #define _HW_DEF_RTOS_MEM_SIZE(x)              ((x)/4)
 
-#define _HW_DEF_RTOS_THREAD_PRI_MAIN          osPriorityNormal
+#define _HW_DEF_RTOS_THREAD_PRI_MAIN          osPriorityNormal//osPriorityRealtime
 #define _HW_DEF_RTOS_THREAD_PRI_FM_CMD        osPriorityNormal
 #define _HW_DEF_RTOS_THREAD_PRI_LCD_CMD       osPriorityNormal
-#define _HW_DEF_RTOS_THREAD_PRI_EVENT         osPriorityNormal
+#define _HW_DEF_RTOS_THREAD_PRI_EVENT         osPriorityNormal//osPriorityHigh
 
 
 #define _HW_DEF_RTOS_THREAD_MEM_MAIN          _HW_DEF_RTOS_MEM_SIZE( 1*1024)
@@ -38,7 +38,7 @@
 #define _USE_HW_LED
 #define      HW_LED_MAX_CH          2
 
-#define _USE_HW_PWM
+//#define _USE_HW_PWM
 #define      HW_PWM_MAX_CH          1
 
 //#define _USE_HW_BUTTON
@@ -81,7 +81,7 @@
 #define      HW_USE_MSC             0
 
 #define _USE_HW_UART
-#define      HW_UART_MAX_CH         4
+#define      HW_UART_MAX_CH         3
 
 #define _USE_HW_SW_TIMER
 #define      HW_SW_TIMER_MAX_CH     4

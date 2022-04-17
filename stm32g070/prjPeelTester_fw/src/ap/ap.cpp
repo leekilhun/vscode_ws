@@ -38,8 +38,8 @@ enVac vac[AP_DEF_OBJ_VACUUM_ID_MAX];
 enOp op_sw;
 
 // control  (·ÎÁ÷ °èÃþ)
-cnAutoManager autoManager;
-cnProcess process;
+cnAuto autoManager;
+cnJob process;
 
 // application interface.
 uiNextionLcd nextion_lcd;
@@ -201,14 +201,16 @@ void apInit(void)
 
   /* automanager initial */
   {
-    cnAutoManager::cfg_t auto_cfg = {0, };
+    cnAuto::cfg_t auto_cfg = {0, };
     auto_cfg.p_apReg = &mcu_reg;
+    auto_cfg.p_apLog = &mcu_log;
+    auto_cfg.p_ApIo = (iio *)&mcu_io;;
     autoManager.Init(auto_cfg);
   }
 
   /* sequence process initial */
   {
-    cnProcess::cfg_t prc_cfg = {0, };
+    cnJob::cfg_t prc_cfg = {0, };
     prc_cfg.p_apReg = &mcu_reg;
     prc_cfg.p_apIo = &mcu_io;
     prc_cfg.p_Fm = &fastech_motor;
@@ -277,6 +279,11 @@ void apMain(void)
 
   /* set default system config */
   mcu_reg.status[AP_REG_BANK_SETTING][AP_REG_USE_BEEP] = true;
+
+  /****************************/
+  process.SetAutoSpeed(seq_data.GetMaxSpeed());
+  /****************************/
+
 
   /*Assign Obj */
   mcu_io.assignObj((iio *)&fastech_motor);
@@ -567,4 +574,12 @@ void updateErr()
 void updateApReg()
 {
   mcu_io.Update_io();
+    if (autoManager.IsDetectAreaSensor()) //
+  {
+    mcu_reg.SetRunState(AP_REG_DETECT_AREA_SEN, true);
+  }
+  else
+  {
+    mcu_reg.SetRunState(AP_REG_DETECT_AREA_SEN, false);
+  }
 }

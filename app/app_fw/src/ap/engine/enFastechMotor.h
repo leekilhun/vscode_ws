@@ -200,11 +200,14 @@ public:
   int MoveOrigin();
   int GetMotorParameter(uint8_t parm_no);
   int SetMotorParameter(uint8_t parm_no, int value);
+
+  int RelMove(int cmd_dist, uint32_t cmd_vel = 100);
   int MotorOnOff(bool on_off);
   int JogMove(uint32_t cmd_vel = 1000, bool is_cw = true);
   int JogMove(uint32_t jog_pos, uint32_t cmd_vel = 1000, bool is_cw = true);
 
   int Move (int cmd_pos, uint32_t cmd_vel = 100, uint32_t acc = 100, uint32_t decel = 100);
+
   //축을 정지한다. (한개의 축에 대한 정지)
   int Stop ();
   //축을 등속이동에 대해 정지한다.

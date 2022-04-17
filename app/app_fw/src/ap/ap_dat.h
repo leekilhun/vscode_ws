@@ -292,6 +292,8 @@ struct vac_dat{
 
 
 
+#define SEQ_DAT_DEF_MAX_SPEED          101
+#define SEQ_DAT_DEF_MAX_LOOP_CNT       1001
 struct seq_dat{
   struct dat_t
   {
@@ -301,7 +303,8 @@ struct seq_dat{
 
   enum class addr_e //
   {
-    seq_0, seq_1, seq_2, seq_3,
+    seq_max_val, seq_peel_try, seq_2, seq_3,
+    seq_4, seq_5, seq_6, seq_7,
     _max
   };
 
@@ -338,24 +341,59 @@ struct seq_dat{
     }
     return ret;
   }
+
+  inline void SetMaxSpeed(uint8_t speed)
+  {
+    dat_t data = {0,0};
+    data = ReadData(addr_e::seq_max_val);
+    data.parm1 = speed % SEQ_DAT_DEF_MAX_SPEED;
+    WriteData(addr_e::seq_max_val, data);
+  }
+
+  inline uint32_t GetMaxSpeed() const
+  {
+    return (uint32_t)sequencing_dat[static_cast<uint8_t>(seq_dat::addr_e::seq_max_val)].parm1;
+  }
+
+  inline uint32_t GetMaxLoopCnt() const
+  {
+    return (uint32_t)sequencing_dat[static_cast<uint8_t>(seq_dat::addr_e::seq_max_val)].parm2;
+  }
+
+  inline void SetMaxLoopCnt(uint8_t cnt)
+  {
+    dat_t data = {0,0};
+    data = ReadData(addr_e::seq_max_val);
+    data.parm2 = cnt % SEQ_DAT_DEF_MAX_LOOP_CNT;
+    WriteData(addr_e::seq_max_val, data);
+  }
+
+
 };
 
 
 #define AP_LOG_DAT_BUFF_SIZE               60
-#define AP_LOG_DAT_HEADER                  0x11
+#define AP_LOG_DAT_HEADER                  0x11 // for nextion_lcd display
 struct log_dat{
   struct head_t
   {
-    uint8_t  header{};
+    uint8_t  header=AP_LOG_DAT_HEADER;
     uint8_t  error_no{};
     uint8_t  obj_id{};
     uint8_t  step_no{};
+    inline void operator = (const head_t* p){
+      this->header =  p->header;
+      this->error_no =  p->error_no;
+      this->obj_id =  p->obj_id;
+      this->step_no =  p->step_no;
+    }
   };
   struct dat_t
   {
     head_t head{};
     char  log[AP_LOG_DAT_BUFF_SIZE]{};
 
+    dat_t(){init();}
     inline void init(){
       head.header = AP_LOG_DAT_HEADER;
       head.error_no = 0;

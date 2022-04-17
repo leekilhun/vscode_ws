@@ -196,6 +196,8 @@ void apInit(void)
   {
     cnAutoManager::cfg_t auto_cfg ={0,};
     auto_cfg.p_apReg = &mcu_reg;
+    auto_cfg.p_apLog = &mcu_log;
+    auto_cfg.p_ApIo = (IIO *)&mcu_io;;
     autoManager.Init(auto_cfg);
   }
   
@@ -270,15 +272,21 @@ void apMain(void)
   delay(5);
   seq_data.LoadRomData();
 
-  /*log test*/
-  // log_dat::head_t head_inf ={17,2,3,4};
-  // mcu_log.apLogWrite(head_inf,"test log id[%d]",7);
-  // mcu_log.apLogWrite(head_inf,"write contents id[%d]",5);
-  // mcu_log.apLogWrite(head_inf,"error log id[%d]",5);
   /****************************/
   mcu_reg.status[AP_REG_BANK_SETTING][AP_REG_USE_BEEP] = true;
   /****************************/
 
+  /*log test*/
+  /*log_dat::head_t head_inf;
+  head_inf.error_no = static_cast<uint8_t>(cnAutoManager::state_e::cyl_0_open_timeout);
+  head_inf.obj_id = AP_DEF_OBJ_CYLINDER_ID_PHONE_JIG;
+  head_inf.step_no = CN_PROCESS_STEP_PHONE_JIG_OPEN_WAIT;
+  autoManager.AUTO_ALARM(&head_inf,"test log id");*/
+  //mcu_log.apLogWrite(&head_inf,"test log id");
+
+
+  /****************************/
+  process.SetAutoSpeed(seq_data.GetMaxSpeed());
   /****************************/
   /*Assign Obj */
   mcu_io.assignObj((IIO *)&fastech_motor);
@@ -305,6 +313,7 @@ void threadEvent(void const *argument)
 {
   UNUSED(argument);
   uint32_t pre_cmd_event_ms = millis();
+
   while (1)
   {
     /*1. op panel check event -> update autoManager flag and mcu register */
@@ -433,7 +442,10 @@ void eventOpPanel()
 
   if (opPanel_GetPressed(OP_SWITCH_START))
   {
-    autoManager.StartSw();
+   if (nextion_lcd.GetcurrPage()== nextionpage_t::NEX_PAGE_MAIN)
+   {
+     autoManager.StartSw();
+   }
   }
   else if (opPanel_GetPressed(OP_SWITCH_STOP))
   {
@@ -445,6 +457,9 @@ void eventOpPanel()
     mcu_reg.SetRunState(AP_REG_ALARM_STATUS, false);
     autoManager.ResetSw();
   }
+
+
+
 }
 
 void updateLamp()
@@ -536,23 +551,34 @@ void updateErr()
     errCnt = 0;
     mcu_reg.status[AP_REG_BANK_ERR_H][AP_REG_ERR_CLEAR] = true;
     refresh_time = 1000;
-    //process(sequence) alarm 상태를 체크
-    if (mcu_reg.GetAlarmState() !=0)
-    {
-      mcu_reg.SetRunState(AP_REG_ALARM_STATUS, true);
-    }
-    else
-    {
-      mcu_reg.SetRunState(AP_REG_ALARM_STATUS, false);
-    }
-
-
-
   }
+
+
+  //process 에러 체크
+  if (mcu_reg.GetAlarmState() != 1)
+  {
+    mcu_reg.SetRunState(AP_REG_ALARM_STATUS, true);
+  }
+  else
+  {
+    mcu_reg.SetRunState(AP_REG_ALARM_STATUS, false);
+  }
+
+
 }
 
 
 void updateApReg()
 {
   mcu_io.Update_io();
+
+  if (autoManager.IsDetectAreaSensor()) //
+  {
+    mcu_reg.SetRunState(AP_REG_DETECT_AREA_SEN, true);
+  }
+  else
+  {
+    mcu_reg.SetRunState(AP_REG_DETECT_AREA_SEN, false);
+  }
+
 }

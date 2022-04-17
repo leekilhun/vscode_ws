@@ -32,7 +32,7 @@ uint8_t ap_log::GetAddrNo()
   return (m_Head - (m_Head - m_Tail)) % AP_LOG_QUE_BUFF_SIZE;
 }
 
-bool ap_log::apLogWrite(log_dat::head_t head_info, const char *fmt, ...)
+bool ap_log::apLogWrite(log_dat::head_t *p_head_info, const char *fmt, ...)
 {
   bool ret = true;
   AP_LOG_LOCK_BEGIN;
@@ -43,7 +43,7 @@ bool ap_log::apLogWrite(log_dat::head_t head_info, const char *fmt, ...)
   va_start(args, fmt);
   len = vsnprintf(m_log.GetBuffer(), m_log.GetBufferLen(), fmt, args);
   UNUSED(len);
-  m_log.log_buff.head = head_info;
+  m_log.log_buff.head = *(p_head_info);
 
   uint8_t next_in;
   next_in = (m_Head + 1) % AP_UTIL_QUE_BUFF_SIZE;

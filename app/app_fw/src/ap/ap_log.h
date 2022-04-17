@@ -38,11 +38,12 @@ class ap_log
    ****************************************************/
 public:
   ap_log (){
-    m_Head = m_Tail = 0;
 #ifdef _USE_HW_RTOS
     osMutexDef(ap_log_mutex_id);
     ap_log_mutex_id = osMutexCreate (osMutex(ap_log_mutex_id));
 #endif
+
+    m_Head = m_Tail = 0;
   }
   virtual ~ap_log (){}
 
@@ -62,7 +63,7 @@ public:
     return (m_Head - (m_Head - m_Tail)) % AP_LOG_QUE_BUFF_SIZE;
   }
 
-  inline bool apLogWrite(log_dat::head_t head_info, const char *fmt, ...) {
+  inline bool apLogWrite(log_dat::head_t *p_head_info, const char *fmt, ...) {
     bool ret = true;
     AP_LOG_LOCK_BEGIN;
 
@@ -72,7 +73,7 @@ public:
     va_start(args, fmt);
     len = vsnprintf(m_log.GetBuffer(), m_log.GetBufferLen(), fmt, args);
     UNUSED(len);
-    m_log.log_buff.head = head_info;
+    m_log.log_buff.head = *(p_head_info);
 
     uint8_t next_in;
     next_in = (m_Head + 1) % AP_UTIL_QUE_BUFF_SIZE;
@@ -106,8 +107,6 @@ public:
   }
 
   inline uint8_t* Get() {
-    //AP_LOG_LOCK_BEGIN;
-
     uint8_t* ret = 0;
     //read *(p_data) = m_Buff[m_Tail];
     uint8_t addr_no = GetAddrNo();
@@ -119,7 +118,6 @@ public:
     else
       ret = 0;
 
-    //AP_LOG_LOCK_END;
     return ret;
   }
 

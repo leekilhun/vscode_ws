@@ -1257,6 +1257,8 @@ void uiNextionLcd::doRunStep()
     m_stepBuffer[2] = m_pApReg->status[AP_REG_BANK_ERR_L].get();
     m_stepBuffer[3] = m_pApReg->status[AP_REG_BANK_SETTING].get();
     m_stepBuffer[4] = m_pApReg->status[AP_REG_BANK_RUN_STATE].get();
+    m_stepBuffer[5] = (uint8_t)m_pAp->GetAutoSpeed();
+    m_stepBuffer[6] = (uint8_t)m_pAp->GetStep();
 
     cmdNextion_SendData(&m_Packet, 0, 0, &m_stepBuffer[0], UI_NEXTION_MAX_BUFFER_LENGTH);
 
@@ -1552,7 +1554,7 @@ void uiNextionLcd::doRunStep()
   break;
   case UI_NEXTION_STEP_WRITE_IO_REG_OUT_WAIT:
   {
-    if (millis() - m_pre_time < 10)
+    if (millis() - m_pre_time < 5)
       break;
 
    /* bool is_equal = false;
@@ -1600,7 +1602,7 @@ void uiNextionLcd::doRunStep()
       break;
 
     okResponse();
-    m_step.SetStep((uint8_t)m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
+    m_step.SetStep(m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
     m_pre_time = millis();
   }
   break;
@@ -1615,7 +1617,7 @@ void uiNextionLcd::doRunStep()
   break;
   case UI_NEXTION_STEP_OK_RESPONSE_END:
   {
-    m_step.SetStep((uint8_t)m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
+    m_step.SetStep(m_stepBuffer[UI_NEXTION_BUFF_ASSIGN_RETURN_ADDR]);
     m_pre_time = millis();
   }
 

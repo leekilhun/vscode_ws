@@ -269,6 +269,35 @@ bool seq_dat::ClearRomData()
 }
 
 
+void seq_dat::SetMaxSpeed(uint8_t speed)
+{
+  dat_t data = {0, 0};
+  data = ReadData(addr_e::seq_max_val);
+  data.parm1 = speed % SEQ_DAT_DEF_MAX_SPEED;
+  WriteData(addr_e::seq_max_val, data);
+}
+
+uint32_t seq_dat::GetMaxSpeed() const
+{
+  return (uint32_t)sequencing_dat[static_cast<uint8_t>(seq_dat::addr_e::seq_max_val)].parm1;
+}
+
+uint32_t seq_dat::GetMaxLoopCnt() const
+{
+  return (uint32_t)sequencing_dat[static_cast<uint8_t>(seq_dat::addr_e::seq_max_val)].parm2;
+}
+
+void seq_dat::SetMaxLoopCnt(uint8_t cnt)
+{
+  dat_t data = {0, 0};
+  data = ReadData(addr_e::seq_max_val);
+  data.parm2 = cnt % SEQ_DAT_DEF_MAX_LOOP_CNT;
+  WriteData(addr_e::seq_max_val, data);
+}
+
+
+
+
 /****************************************************
  *  log data
  ****************************************************/

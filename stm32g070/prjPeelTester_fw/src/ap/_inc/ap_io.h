@@ -80,7 +80,7 @@ public:
     mcu_in_drum_vac_on,
     mcu_in_drum_tail_vac_on,
     mcu_in_phonejig_vac_on,
-    in07, // b0 mcu   in00 ~ 07
+    mcu_area_sensor, // b0 mcu   in00 ~ 07
     in10,
     in11,
     in12,

@@ -32,9 +32,7 @@ void apMain(void)
     {
       pre_time = millis();
       
-      ledToggle(_DEF_LED1);      
-      ledToggle(_DEF_LED2);      
-      ledToggle(_DEF_LED3);      
+      ledToggle(_DEF_LED1);       
 
       logPrintf("index %d\n", index++);
     }
@@ -47,7 +45,9 @@ void task1_handle(void *p)
 	for (;;)
 	{
 		printf("task1_handle\r\n");
-		vTaskDelay(1000);
+
+    //ledToggle(_DEF_LED2);
+    vTaskDelay(1000);
 	}
 }
 
@@ -56,6 +56,9 @@ void task2_handle(void *p)
 	for (;;)
 	{
 		printf("task2_handle\r\n");
+    
+    //ledToggle(_DEF_LED3);
 		vTaskDelay(1000);
-	}
+
+  }
 }

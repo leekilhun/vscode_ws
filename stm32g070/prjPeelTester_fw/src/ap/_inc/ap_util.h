@@ -19,7 +19,19 @@ namespace scope
   /// <param name="low">하위 값</param>
   /// <param name="high">상위 값</param>
   /// <returns>true 범위 내, false 범위 외 </returns>
-  bool between(int amt, int low, int high);
+  inline bool between(int amt, int low, int high)
+  {
+    bool ret = true;
+    if (amt < low)
+    {
+      ret = false;
+    }
+    else if (amt > high)
+    {
+      ret = false;
+    }
+    return ret;
+  }
 }
 
 /// <summary>
@@ -27,18 +39,33 @@ namespace scope
 /// </summary>
 namespace conv
 {
-  int DwToInt(uint8_t *bytes);
-  uint32_t DwToUint(uint8_t *bytes);
+  inline int DwToInt(uint8_t *bytes)
+  {
+    int a = bytes[0] & 0xFF;
+    a |= ((bytes[1] << 8) & 0xFF00);
+    a |= ((bytes[2] << 16) & 0xFF0000);
+    a |= ((bytes[3] << 24) & 0xFF000000);
+
+    return a;
+  }
+  inline uint32_t DwToUint(uint8_t *bytes)
+  {
+    uint32_t a = bytes[0] & 0xFF;
+    a |= ((bytes[1] << 8) & 0xFF00);
+    a |= ((bytes[2] << 16) & 0xFF0000);
+    a |= ((bytes[3] << 24) & 0xFF000000);
+
+    return a;
+  }
+
 }
-
-
 
 /// <summary>
 /// 데이터 버퍼 클래스
 /// </summary>
 namespace buffer
 {
-  #define AP_UTIL_QUE_BUFF_SIZE 32
+#define AP_UTIL_QUE_BUFF_SIZE 32
   template <typename T>
   class _que
   {
@@ -164,13 +191,31 @@ namespace buffer
   };
 }
 
+namespace trans
+{
+  inline uint8_t SplitArgs(char *arg_str, char **argv, const char *delim_chars, int max)
+  {
+    uint8_t argc = 0;
+    char *tok = nullptr;
+    char *next_ptr = nullptr;
+
+    for (tok = strtok_r(arg_str, delim_chars, &next_ptr); tok; tok = strtok_r(NULL, delim_chars, &next_ptr))
+    {
+      argv[argc++] = tok;
+      if (argc >= max)
+        return argc - 1;
+    }
+    return argc;
+  }
+}
+
 namespace conv
 {
   int DwToInt(uint8_t *bytes);
   uint32_t DwToUint(uint8_t *bytes);
 }
 
-#define DEF_FLAG_BANK_MAX  8
+#define DEF_FLAG_BANK_MAX 8
 enum class bit_e
 {
   b0,

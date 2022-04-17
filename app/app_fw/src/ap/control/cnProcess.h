@@ -123,6 +123,25 @@
 #define CN_PROCESS_STEP_SEQ_INITIAL_WAIT           100
 #define CN_PROCESS_STEP_SEQ_INITIAL_END            111
 
+#define CN_PROCESS_STEP_REL_MOVE                   112
+#define CN_PROCESS_STEP_REL_MOVE_START             113
+#define CN_PROCESS_STEP_REL_MOVE_WAIT              114
+#define CN_PROCESS_STEP_REL_MOVE_END               115
+
+#define CN_PROCESS_STEP_REATTACH_CPLT              116
+#define CN_PROCESS_STEP_REATTACH_CPLT_START        117
+#define CN_PROCESS_STEP_REATTACH_CPLT_WAIT         118
+#define CN_PROCESS_STEP_REATTACH_CPLT_END          119
+
+#define CN_PROCESS_STEP_WORK_COMPLETE              120
+#define CN_PROCESS_STEP_WORK_COMPLETE_START        121
+#define CN_PROCESS_STEP_WORK_COMPLETE_WAIT         122
+#define CN_PROCESS_STEP_WORK_COMPLETE_END          123
+
+#define CN_PROCESS_STEP_CHECK_VACUUM_ON            124
+#define CN_PROCESS_STEP_CHECK_VACUUM_ON_RETRY      125
+
+
 #define CN_PROCESS_STEP_TIMEOUT                     254
 #define CN_PROCESS_STEP_END                         255
 
@@ -161,6 +180,8 @@ private:
   seq_dat* m_pApSeqDat;
   uint8_t m_retryCnt;
   bool m_IsAutoReady;
+  uint32_t m_AutoSpeed;
+  uint8_t m_prcStep;
 
 public:
   bool m_IsToDoState;
@@ -193,6 +214,9 @@ public:
   int Initialize();
   void ThreadJob();
 
+  void SetAutoSpeed(uint32_t speed);
+  uint32_t GetAutoSpeed() const;
+  uint8_t GetStep() const;
   bool IsCylOpen(uint8_t obj_id);
   bool IsCylClose(uint8_t obj_id);
   int CylOpen(uint8_t obj_id, bool skip_sensor = false);
@@ -208,7 +232,7 @@ public:
   void MotorOnOff(bool on_off);
   void MotorStop();
   void MotorRun(int cmd_pos, uint32_t cmd_vel, uint32_t acc = 100, uint32_t decel = 100);
-
+  void RelMove(int cmd_dist, uint32_t cmd_vel);
   /*  data format (12 bytes) addr 4byte, pos 4byte, vel 4byte */
   void WriteMotorData(uint8_t* p_data, uint8_t length);
 
@@ -216,6 +240,7 @@ public:
   void WriteCylData(uint8_t* p_data, uint8_t length);
   void WriteVacData(uint8_t* p_data, uint8_t length);
   void WriteSeqData(uint8_t* p_data, uint8_t length);
+
 
 
 };

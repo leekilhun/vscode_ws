@@ -194,6 +194,7 @@ public:
   int MoveOrigin();
   int GetMotorParameter(uint8_t parm_no);
   int SetMotorParameter(uint8_t parm_no, int value);
+  int RelMove(int cmd_dist, uint32_t cmd_vel = 100);
   int MotorOnOff(bool on_off);
   int JogMove(uint32_t cmd_vel = 1000, bool is_cw = true);
   int JogMove(uint32_t jog_pos, uint32_t cmd_vel = 1000, bool is_cw = true);

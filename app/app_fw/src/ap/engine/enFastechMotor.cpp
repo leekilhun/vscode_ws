@@ -154,6 +154,52 @@ int enFastechMotor::MotorOnOff(bool on_off)
   return (ret ? 0 : -1);
 }
 
+int enFastechMotor::RelMove(int cmd_dist, uint32_t cmd_vel)
+{
+  bool ret;
+  if (!IsMotorOn())
+    return -1;
+
+  int conv_pos = 0;
+  uint32_t conv_vel = 0;
+  ap_dat::dat_t cfg = m_pApCfgDat->apcfg_dat[static_cast<uint8_t>(ap_dat::addr_e::ap_mot_scale)];
+  uint16_t turn_per_pulse = cfg.parm1;
+  uint16_t turn_per_move_mm = cfg.parm2;
+
+  //conv_pos = (((cmd_pos)/(int)turn_per_move_mm)*(int)turn_per_pulse)/1000;
+  conv_pos = (((float)(cmd_dist)/(float)turn_per_move_mm)*(int)turn_per_pulse)/1000;
+  conv_vel = (uint32_t)(((float)cmd_vel/(float)60)*(float)turn_per_pulse);
+
+  uint8_t data[9] ={0};
+  data[0] = DEF_FASTECH_COMM_TYPE_MOVE_REL_SINGLE_AXIS;
+  data[1] = (uint8_t)(conv_pos>>0);
+  data[2] = (uint8_t)(conv_pos>>8);
+  data[3] = (uint8_t)(conv_pos>>16);
+  data[4] = (uint8_t)(conv_pos>>24);
+  data[5] = (uint8_t)(conv_vel>>0);
+  data[6] = (uint8_t)(conv_vel>>8);
+  data[7] = (uint8_t)(conv_vel>>16);
+  data[8] = (uint8_t)(conv_vel>>24);
+  ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
+  uint32_t pass_ms = millis();
+  uint8_t retry_cnt = 0;
+
+  m_Packet.rx_packet.response = 0xfe;
+  while(m_Packet.rx_packet.response)
+  {
+    if ((millis() - pass_ms) > 100)
+    {
+      if (retry_cnt++ == 3)
+        break;
+      else
+        ret = cmdFastech_SendCmd(&this->m_Packet,&data[0],9);
+      pass_ms = millis();
+    }
+  }
+  return (ret ? 0 : -1);
+
+}
+
 int enFastechMotor::Move (int cmd_pos, uint32_t cmd_vel, uint32_t acc, uint32_t decel)
 {
   bool ret;

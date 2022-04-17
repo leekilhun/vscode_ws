@@ -122,7 +122,8 @@ struct vac_dat {
 };
 
 
-
+#define SEQ_DAT_DEF_MAX_SPEED          101
+#define SEQ_DAT_DEF_MAX_LOOP_CNT       1001
 struct seq_dat {
   struct dat_t
   {
@@ -132,7 +133,14 @@ struct seq_dat {
 
   enum class addr_e //
   {
-    seq_0, seq_1, seq_2, seq_3,
+    seq_max_val,
+    seq_peel_try,
+    seq_2,
+    seq_3,
+    seq_4,
+    seq_5,
+    seq_6,
+    seq_7,
     _max
   };
 
@@ -143,6 +151,11 @@ struct seq_dat {
   seq_dat::dat_t ReadData(seq_dat::addr_e addr);
   void LoadRomData();
   bool ClearRomData();
+  void SetMaxSpeed(uint8_t speed);
+  uint32_t GetMaxSpeed() const;
+  uint32_t GetMaxLoopCnt() const;
+  void SetMaxLoopCnt(uint8_t cnt);
+
 };
 
 

@@ -132,6 +132,30 @@ namespace buffer
   };
 }
 
+namespace trans
+{
+  inline uint8_t SplitArgs(char* arg_str, char** argv, const char* delim_chars, int max)
+  {
+    uint8_t argc = 0;
+    char* tok = nullptr;
+    char* next_ptr = nullptr;
+
+    for (tok = strtok_r(arg_str, delim_chars, &next_ptr); tok; tok = strtok_r(NULL, delim_chars, &next_ptr))
+    {
+      argv[argc++] = tok;
+      if (argc >= max)
+        return argc - 1;
+    }
+    return argc;
+  }
+}
+
+
+
+
+
+
+
 namespace conv
 {
   inline int DwToInt(uint8_t* bytes) {
@@ -144,11 +168,11 @@ namespace conv
   }
 
   /// <summary>
-  /// 4¹ÙÀÌÆ® °ª¿¡¼­ bank(0~3), bit(0~7) Á¤º¸¸¦ ¾ò¾î
-  /// ¸®ÅÏÇÑ´Ù.
+  /// 4ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ bank(0~3), bit(0~7) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+  /// ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
   /// </summary>
-  /// <param name="data">4¹ÙÀÌÆ® Á¤º¸</param>
-  /// <returns>¾Õ 1¹ÙÀÌÆ® bank, µÚ 1¹ÙÀÌÆ® bit </returns>
+  /// <param name="data">4ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½</param>
+  /// <returns>ï¿½ï¿½ 1ï¿½ï¿½ï¿½ï¿½Æ® bank, ï¿½ï¿½ 1ï¿½ï¿½ï¿½ï¿½Æ® bit </returns>
   inline BankBit_t DwToBankBitNo(uint32_t data) {
     BankBit_t ret = {};
     /*div_t div_result = div(data,8);

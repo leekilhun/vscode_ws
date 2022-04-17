@@ -33,8 +33,8 @@ public:
     ap_dat *p_apCfgDat;
     seq_dat *p_apSeqDat;
     enFaxis *p_Fm;
-    cnAutoManager *p_Auto;
-    cnProcess *p_Ap;
+    cnAuto *p_Auto;
+    cnJob *p_Ap;
     ap_log *p_Log;
     uint8_t ch;
     uint32_t baud;
@@ -50,8 +50,8 @@ private:
   ap_dat *m_pApCfgDat;
   seq_dat *m_pApSeqDat;
   enFaxis *m_pFm;
-  cnAutoManager *m_pAuto;
-  cnProcess *m_pAp;
+  cnAuto *m_pAuto;
+  cnJob *m_pAp;
   ap_log *m_pLog;
   robotro_t m_Packet;
 

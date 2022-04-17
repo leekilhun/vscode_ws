@@ -1,15 +1,22 @@
 #include "ap.h"
-#include "cnAutomanager.h"
+#include "cnAuto.h"
 
 
+#define CN_AUTO_ARG_TBL_CNT_MAX  10
 
-cnAutoManager::cnAutoManager ():m_pApReg(NULL),m_pOP(NULL)
+#define CN_AUTO_MSG_STR_MAX        20
+#define CN_AUTO_FILE_STR_MAX       40
+
+cnAuto::cnAuto ():m_pApReg(NULL),m_pOP(NULL)
 {
   // TODO Auto-generated constructor stub
+  m_pApLog = NULL;
+  m_pApIo = NULL;
+
   m_OpMode = enOp::mode::STOP;
   m_OpStatus=enOp::status::INIT;
   m_checkReady = false;
-  m_step.SetStep(CN_AUTOMANAGER_STEP_INIT);
+  m_step.SetStep(CN_AUTO_STEP_INIT);
   m_pre_time = 0;
   m_retryCnt =0;
   m_FlagStartSw =0;
@@ -20,60 +27,75 @@ cnAutoManager::cnAutoManager ():m_pApReg(NULL),m_pOP(NULL)
 
 }
 
-cnAutoManager::~cnAutoManager ()
+cnAuto::~cnAuto ()
 {
   // TODO Auto-generated destructor stub
 }
 
-void cnAutoManager::Init(cnAutoManager::cfg_t &cfg)
+void cnAuto::Init(cnAuto::cfg_t &cfg)
 {
   m_pApReg = cfg.p_apReg;
+  m_pApIo = cfg.p_ApIo;
+  m_pApLog = cfg.p_apLog;
   m_pOP = cfg.p_op;
 }
 
-enOp::mode cnAutoManager::GetOPMode()
+enOp::mode cnAuto::GetOPMode()
 {
   return m_OpMode;
 }
 
-enOp::status cnAutoManager::GetOPStatus()
+enOp::status cnAuto::GetOPStatus()
 {
   return m_OpStatus;
 }
 
-void cnAutoManager::SetOPMode(enOp::mode mode)
+void cnAuto::SetOPMode(enOp::mode mode)
 {
   m_pOP->SetMode(mode);
   m_OpMode = mode;
 }
-void cnAutoManager::SetOPStatus(enOp::status status)
+void cnAuto::SetOPStatus(enOp::status status)
 {
   m_pOP->SetStatus(status);
   m_OpStatus = status;
 }
 
-void cnAutoManager::StopSw()
+void cnAuto::StopSw()
 {
   SetOPMode(enOp::mode::STOP);
   SetOPStatus(enOp::status::STEP_STOP);
   m_checkReady = false;
 }
 
-void cnAutoManager::ResetSw()
+void cnAuto::ResetSw()
 {
   SetOPMode(enOp::mode::STOP);
   SetOPStatus(enOp::status::STEP_STOP);
   m_pApReg->ClearAlarmState();
   m_checkReady = false;
+  m_IsDetectedPauseSensor = false;
 }
 
-void cnAutoManager::UiStarSw()
+void cnAuto::PauseStop()
+{
+  m_IsDetectedPauseSensor = true;
+}
+
+bool cnAuto::IsDetectAreaSensor()
+{
+  bool ret = false;
+  ret = m_pApIo->IsOn(static_cast<uint32_t>(ap_io::in_e::mcu_area_sensor));
+  ret |=m_IsDetectedPauseSensor;
+ return ret;
+}
+void cnAuto::UiStarSw()
 {
   m_FlagStartSw = true;
   m_checkReady = true;
 }
 
-void cnAutoManager::StartSw()
+void cnAuto::StartSw()
 {
   if (m_pushSw[static_cast<uint8_t>(sw_e::start)].is_press == false)
   {
@@ -88,42 +110,66 @@ void cnAutoManager::StartSw()
 }
 
 
-void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
+void cnAuto::AlarmAuto(
+    log_dat::head_t* p_head,
+    const char* file,
+    const char* func,
+    const int line,
+    const char* msg)
+{
+  cnAuto::state_e err = static_cast<cnAuto::state_e>(p_head->error_no);
+
+  char tmp_str[CN_AUTO_FILE_STR_MAX] = { 0, };
+  strcpy(tmp_str, file);
+  char* arg_tbl[CN_AUTO_ARG_TBL_CNT_MAX] = {};
+  uint8_t arg_cnt = trans::SplitArgs(tmp_str, arg_tbl, "/", CN_AUTO_ARG_TBL_CNT_MAX);
+  //memset(tmp_str,0x00,CN_AUTO_FILE_STR_MAX);
+ /* if (arg_tbl[arg_cnt - 1] != 0)
+  {
+    strcpy(tmp_str, arg_tbl[arg_cnt - 1]);
+  }*/
+  m_pApLog->apLogWrite(p_head, "file[%s],func[%s],msg[%s]",arg_tbl[arg_cnt - 1],func,msg);
+
+  AlarmAuto(err);
+}
+
+
+void cnAuto::AlarmAuto(cnAuto::state_e err)
 {
   switch (err)
   {
-    case cnAutoManager::state_e::mcu_unit_err:
-    case cnAutoManager::state_e::seq_initial_timeout:
-    case cnAutoManager::state_e::emg_stop:
-    case cnAutoManager::state_e::error_stop:
+    case cnAuto::state_e::mcu_unit_err:
+    case cnAuto::state_e::seq_initial_timeout:
+    case cnAuto::state_e::emg_stop:
+    case cnAuto::state_e::error_stop:
       break;
 
-    case cnAutoManager::state_e::servo_on_err:
-    case cnAutoManager::state_e::servo_off_err:
-    case cnAutoManager::state_e::axis_origin_err:
+    case cnAuto::state_e::servo_on_err:
+    case cnAuto::state_e::servo_off_err:
+    case cnAuto::state_e::axis_origin_err:
       break;
 
-    case cnAutoManager::state_e::axis_move_timeout:
-    case cnAutoManager::state_e::axis_stop_timeout:
+    case cnAuto::state_e::axis_move_timeout:
+    case cnAuto::state_e::axis_stop_timeout:
       break;
 
-    case cnAutoManager::state_e::cyl_0_open_timeout:
-    case cnAutoManager::state_e::cyl_1_open_timeout:
-    case cnAutoManager::state_e::cyl_2_open_timeout:
-    case cnAutoManager::state_e::cyl_3_open_timeout:
-    case cnAutoManager::state_e::cyl_0_close_timeout:
-    case cnAutoManager::state_e::cyl_1_close_timeout:
-    case cnAutoManager::state_e::cyl_2_close_timeout:
-    case cnAutoManager::state_e::cyl_3_close_timeout:
+    case cnAuto::state_e::cyl_0_open_timeout:
+    case cnAuto::state_e::cyl_1_open_timeout:
+    case cnAuto::state_e::cyl_2_open_timeout:
+    case cnAuto::state_e::cyl_3_open_timeout:
+    case cnAuto::state_e::cyl_0_close_timeout:
+    case cnAuto::state_e::cyl_1_close_timeout:
+    case cnAuto::state_e::cyl_2_close_timeout:
+    case cnAuto::state_e::cyl_3_close_timeout:
       m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_CYL_TIMEOUT]=true;
       break;
 
-    case cnAutoManager::state_e::vac_0_on_timeout:
-    case cnAutoManager::state_e::vac_1_on_timeout:
-    case cnAutoManager::state_e::vac_2_on_timeout:
-    case cnAutoManager::state_e::vac_0_off_timeout:
-    case cnAutoManager::state_e::vac_1_off_timeout:
-    case cnAutoManager::state_e::vac_2_off_timeout:
+    case cnAuto::state_e::vac_0_on_timeout:
+    case cnAuto::state_e::vac_1_on_timeout:
+    case cnAuto::state_e::vac_2_on_timeout:
+    case cnAuto::state_e::vac_0_off_timeout:
+    case cnAuto::state_e::vac_1_off_timeout:
+    case cnAuto::state_e::vac_2_off_timeout:
       m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_VAC_TIMEOUT]=true;
       break;
     default:
@@ -132,9 +178,9 @@ void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
 }
 
 
-int cnAutoManager::AutoReady()
+int cnAuto::AutoReady()
 {
-  cnAutoManager::state_e state =  checkStartRunCondition();
+  cnAuto::state_e state =  checkStartRunCondition();
 
   /*if (m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ALARM_STATUS])
   {
@@ -143,7 +189,7 @@ int cnAutoManager::AutoReady()
 
   switch (state)
   {
-    case cnAutoManager::state_e::ready:
+    case cnAuto::state_e::ready:
     {
       if (m_FlagStartSw == true
           || m_pushSw[static_cast<uint8_t>(sw_e::start)].state == sw_event::short_key)
@@ -163,16 +209,16 @@ int cnAutoManager::AutoReady()
     }
     break;
 
-    case cnAutoManager::state_e::error_stop:
+    case cnAuto::state_e::error_stop:
       AlarmAuto(state);
       break;
-    case cnAutoManager::state_e::servo_on_err:
+    case cnAuto::state_e::servo_on_err:
       AlarmAuto(state);
       break;
-    case cnAutoManager::state_e::axis_origin_err:
+    case cnAuto::state_e::axis_origin_err:
       AlarmAuto(state);
       break;
-    case cnAutoManager::state_e::mcu_unit_err:
+    case cnAuto::state_e::mcu_unit_err:
       AlarmAuto(state);
       break;
     default:
@@ -183,9 +229,9 @@ int cnAutoManager::AutoReady()
 }
 
 
-cnAutoManager::state_e cnAutoManager::checkStartRunCondition()
+cnAuto::state_e cnAuto::checkStartRunCondition()
 {
-  cnAutoManager::state_e ret = cnAutoManager::state_e::ready;
+  cnAuto::state_e ret = cnAuto::state_e::ready;
 
   if (m_pApReg->status[AP_REG_BANK_ERR_H][REG_BIT(AP_REG_ERR_CLEAR)])
   {
@@ -196,32 +242,32 @@ cnAutoManager::state_e cnAutoManager::checkStartRunCondition()
     {
       if(m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_EMG_STOP])
       {
-        ret = cnAutoManager::state_e::emg_stop;
+        ret = cnAuto::state_e::emg_stop;
       }
       else if(m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ERROR_STOP])
       {
-        ret = cnAutoManager::state_e::error_stop;
+        ret = cnAuto::state_e::error_stop;
       }
     }
     else if (!m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_MOTOR_ON]) // not
     {
-      ret =cnAutoManager::state_e::servo_on_err;
+      ret =cnAuto::state_e::servo_on_err;
     }
     else if (!m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ORG_COMPLETED]) // not
     {
-      ret =cnAutoManager::state_e::axis_origin_err;
+      ret =cnAuto::state_e::axis_origin_err;
     }
   }
   else
   {
-    ret =cnAutoManager::state_e::mcu_unit_err;
+    ret =cnAuto::state_e::mcu_unit_err;
   }
 
   return ret;
 }
 
 
-void cnAutoManager::pushSW(sw_t& sw)
+void cnAuto::pushSW(sw_t& sw)
 {
   if (millis() - sw.pre_ms < 1)
   {
@@ -230,7 +276,7 @@ void cnAutoManager::pushSW(sw_t& sw)
   else if (millis() - sw.pre_ms < 50)
   {
     //
-    if (m_step.GetStep() == CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_WAIT)
+    if (m_step.GetStep() == CN_AUTO_STEP_SW_CHECK_DOUBLE_WAIT)
     {
       sw.state = sw_event::double_key;
       sw.init();
@@ -241,12 +287,12 @@ void cnAutoManager::pushSW(sw_t& sw)
         sw.init();
       else
       {
-        if(sw.type == cnAutoManager::sw_e::start)
+        if(sw.type == cnAuto::sw_e::start)
         {
           m_checkReady = true;
         }
         sw.state = sw_event::short_key;
-        m_step.SetStep(CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE);
+        m_step.SetStep(CN_AUTO_STEP_SW_CHECK_DOUBLE);
       }
     }
 
@@ -267,7 +313,7 @@ void cnAutoManager::pushSW(sw_t& sw)
 }
 
 
-void cnAutoManager::updateSw()
+void cnAuto::updateSw()
 {
   m_pushSw[static_cast<uint8_t>(sw_e::start)].eventClear();
   m_pushSw[static_cast<uint8_t>(sw_e::stop)].eventClear();
@@ -290,7 +336,7 @@ void cnAutoManager::updateSw()
     pushSW(m_pushSw[static_cast<uint8_t>(sw_e::reset)]);
 }
 
-void cnAutoManager::ThreadJob()
+void cnAuto::ThreadJob()
 {
   updateSw();
   doRunStep();
@@ -301,76 +347,76 @@ void cnAutoManager::ThreadJob()
   }
 }
 
-void cnAutoManager::doRunStep()
+void cnAuto::doRunStep()
 {
 
   switch (m_step.GetStep())
   {
-    case CN_AUTOMANAGER_STEP_INIT:
+    case CN_AUTO_STEP_INIT:
     {
-      m_step.SetStep(CN_AUTOMANAGER_STEP_TODO);
+      m_step.SetStep(CN_AUTO_STEP_TODO);
       m_pre_time = millis();
     }
     break;
     /*######################################################
        to do
       ######################################################*/
-    case CN_AUTOMANAGER_STEP_TODO:
+    case CN_AUTO_STEP_TODO:
     {
       m_retryCnt = 0;
-      //m_pushSw = cnAutoManager::sw_e::none;
+      //m_pushSw = cnAuto::sw_e::none;
     }
     break;
 
     /*######################################################
-       CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE
+       CN_AUTO_STEP_SW_CHECK_DOUBLE
       ######################################################*/
-    case CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE:
+    case CN_AUTO_STEP_SW_CHECK_DOUBLE:
     {
-      m_step.SetStep(CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_START);
+      m_step.SetStep(CN_AUTO_STEP_SW_CHECK_DOUBLE_START);
       m_pre_time = millis();
     }
     break;
-    case CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_START:
+    case CN_AUTO_STEP_SW_CHECK_DOUBLE_START:
     {
       if (millis()-m_pre_time < 5)
         break;
 
-      m_step.SetStep(CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_WAIT);
+      m_step.SetStep(CN_AUTO_STEP_SW_CHECK_DOUBLE_WAIT);
       m_pre_time = millis();
     }
     break;
-    case CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_WAIT:
+    case CN_AUTO_STEP_SW_CHECK_DOUBLE_WAIT:
     {
       if (millis()-m_pre_time < 100)
         break;
 
       if (millis()-m_pre_time >= 1000)
       {
-        m_step.SetStep(CN_AUTOMANAGER_STEP_TIMEOUT);
+        m_step.SetStep(CN_AUTO_STEP_TIMEOUT);
         m_pre_time = millis();
       }
     }
     break;
-    case CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_END:
+    case CN_AUTO_STEP_SW_CHECK_DOUBLE_END:
     {
-      m_step.SetStep(CN_AUTOMANAGER_STEP_TODO);
+      m_step.SetStep(CN_AUTO_STEP_TODO);
       m_pre_time = millis();
     }
     break;
     /*######################################################
        task timeout
       ######################################################*/
-    case CN_AUTOMANAGER_STEP_TIMEOUT:
+    case CN_AUTO_STEP_TIMEOUT:
     {
       if (millis()-m_pre_time < 5)
         break;
 
       m_retryCnt = 0 ;
-      m_step.SetStep(CN_AUTOMANAGER_STEP_TODO);
+      m_step.SetStep(CN_AUTO_STEP_TODO);
     }
     break;
-    case CN_AUTOMANAGER_STEP_END:
+    case CN_AUTO_STEP_END:
     {
 
     }

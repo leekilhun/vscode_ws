@@ -7,12 +7,23 @@
 #include "ap_def.h"
 #include <control/cnAutoManager.h>
 
-cnAutoManager::cnAutoManager ():m_pApReg(NULL)
+
+#define CN_AUTOMANAGER_ARG_TBL_CNT_MAX  10
+
+#define CN_AUTOMANAGER_MSG_STR_MAX        20
+#define CN_AUTOMANAGER_FILE_STR_MAX       40
+
+
+
+
+cnAutoManager::cnAutoManager ():m_pApReg(NULL),m_pApIo(NULL)
 {
   // TODO Auto-generated constructor stub
+  m_pApLog = NULL;
   m_OpMode = OP_MODE_STOP;
   m_OpStatus=OP_STEP_STOP;
   m_checkReady = false;
+  m_IsDetectedPauseSensor = false;
   m_step.SetStep(CN_AUTOMANAGER_STEP_INIT);
   m_pre_time = 0;
   m_retryCnt =0;
@@ -32,6 +43,8 @@ cnAutoManager::~cnAutoManager ()
 void cnAutoManager::Init(cnAutoManager::cfg_t &cfg)
 {
   m_pApReg = cfg.p_apReg;
+  m_pApIo = cfg.p_ApIo;
+  m_pApLog = cfg.p_apLog;
 }
 
 opMode cnAutoManager::GetOPMode()
@@ -68,6 +81,20 @@ void cnAutoManager::ResetSw()
   SetOPStatus(OP_STEP_STOP);
   m_pApReg->ClearAlarmState();
   m_checkReady = false;
+  m_IsDetectedPauseSensor = false;
+}
+
+void cnAutoManager::PauseStop()
+{
+  m_IsDetectedPauseSensor = true;
+}
+
+bool cnAutoManager::IsDetectAreaSensor()
+{
+  bool ret = false;
+  ret = m_pApIo->IsOn(static_cast<uint32_t>(ap_io::in_e::mcu_area_sensor));
+  ret |=m_IsDetectedPauseSensor;
+ return ret;
 }
 
 void cnAutoManager::UiStarSw()
@@ -94,6 +121,30 @@ void cnAutoManager::StartSw()
 }
 
 
+void cnAutoManager::AlarmAuto(
+    log_dat::head_t* p_head,
+    const char* file,
+    const char* func,
+    const int line,
+    const char* msg)
+{
+  cnAutoManager::state_e err = static_cast<cnAutoManager::state_e>(p_head->error_no);
+
+  char tmp_str[CN_AUTOMANAGER_FILE_STR_MAX] = { 0, };
+  strcpy(tmp_str, file);
+  char* arg_tbl[CN_AUTOMANAGER_ARG_TBL_CNT_MAX] = {};
+  uint8_t arg_cnt = trans::SplitArgs(tmp_str, arg_tbl, "/", CN_AUTOMANAGER_ARG_TBL_CNT_MAX);
+  //memset(tmp_str,0x00,CN_AUTOMANAGER_FILE_STR_MAX);
+ /* if (arg_tbl[arg_cnt - 1] != 0)
+  {
+    strcpy(tmp_str, arg_tbl[arg_cnt - 1]);
+  }*/
+  m_pApLog->apLogWrite(p_head, "file[%s],func[%s],msg[%s]",arg_tbl[arg_cnt - 1],func,msg);
+
+  AlarmAuto(err);
+}
+
+
 void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
 {
   //m_pApReg->status[AP_REG_BANK_RUN_STATE][AP_REG_ALARM_STATUS]=true;
@@ -109,7 +160,9 @@ void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
     case cnAutoManager::state_e::servo_on_err:
     case cnAutoManager::state_e::servo_off_err:
     case cnAutoManager::state_e::axis_origin_err:
+      m_pApReg->status[AP_REG_BANK_ERR_H][AP_REG_ERR_MOTOR_NOT_READY]=true;
       break;
+
     case cnAutoManager::state_e::axis_move_timeout:
     case cnAutoManager::state_e::axis_stop_timeout:
       break;
@@ -123,6 +176,7 @@ void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
     case cnAutoManager::state_e::cyl_3_close_timeout:
       m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_CYL_TIMEOUT]=true;
       break;
+
     case cnAutoManager::state_e::vac_0_on_timeout:
     case cnAutoManager::state_e::vac_1_on_timeout:
     case cnAutoManager::state_e::vac_2_on_timeout:
@@ -131,9 +185,15 @@ void cnAutoManager::AlarmAuto(cnAutoManager::state_e err)
     case cnAutoManager::state_e::vac_2_off_timeout:
       m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_VAC_TIMEOUT]=true;
       break;
+
+    case cnAutoManager::state_e::cyl_interlock_State:
+      m_pApReg->status[AP_REG_BANK_ERR_L][AP_REG_ERR_CYL_INTERLOCK]=true;
+      break;
+
     default:
       break;
   }
+  SetOPStatus(OP_ERROR_STOP);
   //m_pApReg->SetRunState(AP_REG_ALARM_STATUS, true);
 }
 

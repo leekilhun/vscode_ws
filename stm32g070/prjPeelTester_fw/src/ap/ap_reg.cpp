@@ -3,12 +3,11 @@
 
 #ifdef _USE_HW_RTOS
 #define AP_REG_LOCK_BEGIN osMutexWait(ap_reg_mutex_id, osWaitForever)
-#define AP_REG_LOCK_END   osMutexRelease(ap_reg_mutex_id)
+#define AP_REG_LOCK_END osMutexRelease(ap_reg_mutex_id)
 #else
 #define AP_REG_LOCK_BEGIN
 #define AP_REG_LOCK_END
 #endif
-
 
 /*constructor*/
 Ap_reg::Ap_reg() : bank_size(AP_REG_BANK_NO_MAX)
@@ -84,9 +83,11 @@ void Ap_reg::SetRunState(bit_e bit, bool on_off)
     value = value & B11111000;
     break;
 
-  case AP_REG_B34:
+  case AP_REG_DETECT_AREA_SEN:
     if (on_off)
-      value = value & B11111111;
+    {
+      value = value | B00010000;
+    }
     else
       value = value & B11101111;
     break;

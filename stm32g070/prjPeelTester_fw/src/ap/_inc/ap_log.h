@@ -36,7 +36,7 @@ public:
   void Init();
   uint8_t Available();
   uint8_t GetAddrNo();
-  bool apLogWrite(log_dat::head_t head_info, const char *fmt, ...);
+  bool apLogWrite(log_dat::head_t *p_head_info, const char *fmt, ...);
   bool Get(log_dat::dat_t *p_data);
   uint8_t *Get();
 };

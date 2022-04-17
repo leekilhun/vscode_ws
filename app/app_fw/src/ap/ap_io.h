@@ -71,7 +71,7 @@ class ap_io:public IIO
 public:
   enum class in_e {
     mcu_in_cyl_1_on, mcu_in_cyl_1_off, mcu_in_cyl_2_on, mcu_in_cyl_2_off,
-    mcu_in_drum_vac_on, mcu_in_drum_tail_vac_on, mcu_in_phonejig_vac_on, in07,  // b0 mcu   in00 ~ 07
+    mcu_in_drum_vac_on, mcu_in_drum_tail_vac_on, mcu_in_phonejig_vac_on, mcu_area_sensor,  // b0 mcu   in00 ~ 07
     in10, in11, in12, in13, in14, in15, in16, in17,  // b1 mcu   in10 ~ 17
     fm_in_cyl_3_on, fm_in_cyl_3_off, fm_in_cyl_4_on, fm_in_cyl_4_off,
     in24, in25, in26, in27,  // b2 motor in00 ~ 07

@@ -1,5 +1,5 @@
 /*
- * cnAutomanager.h
+ * cnAuto.h
  *
  *  Created on: 2022. 4. 7.
  *      Author: gns2l
@@ -10,19 +10,21 @@
 #pragma once
 
 
-#define CN_AUTOMANAGER_STEP_RETRY_CNT_MAX               3
+#define CN_AUTO_STEP_RETRY_CNT_MAX               3
 
-#define CN_AUTOMANAGER_STEP_INIT                        0
-#define CN_AUTOMANAGER_STEP_TODO                        1
-#define CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE             2
-#define CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_START       3
-#define CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_WAIT        4
-#define CN_AUTOMANAGER_STEP_SW_CHECK_DOUBLE_END         5
+#define CN_AUTO_STEP_INIT                        0
+#define CN_AUTO_STEP_TODO                        1
+#define CN_AUTO_STEP_SW_CHECK_DOUBLE             2
+#define CN_AUTO_STEP_SW_CHECK_DOUBLE_START       3
+#define CN_AUTO_STEP_SW_CHECK_DOUBLE_WAIT        4
+#define CN_AUTO_STEP_SW_CHECK_DOUBLE_END         5
 
-#define CN_AUTOMANAGER_STEP_TIMEOUT                     254
-#define CN_AUTOMANAGER_STEP_END                         255
+#define CN_AUTO_STEP_TIMEOUT                     254
+#define CN_AUTO_STEP_END                         255
 
-class cnAutoManager
+#define AUTO_ALARM(head, msg)  AlarmAuto(head, (__FILE__), __FUNCTION__, __LINE__,  msg)
+
+class cnAuto
 {
   /****************************************************
    *  data
@@ -57,6 +59,8 @@ public:
     vac_0_off_timeout,
     vac_1_off_timeout,
     vac_2_off_timeout,
+
+    cyl_interlock_State,
   };
 
 
@@ -103,10 +107,15 @@ public:
   struct cfg_t  {
     Ap_reg* p_apReg;
     enOp* p_op;
+    ap_log* p_apLog;
+    iio * p_ApIo;
   };
+private:
   Ap_reg* m_pApReg;
   enOp* m_pOP;
-private:
+  ap_log* m_pApLog;
+  iio * m_pApIo;
+
   enOp::mode m_OpMode;
   enOp::status m_OpStatus;
   bool m_checkReady;
@@ -115,35 +124,47 @@ private:
   prc_step_t  m_step;
   sw_t m_pushSw[static_cast<uint8_t>(sw_e::_max)];
   bool m_FlagStartSw;
+  bool m_IsDetectedPauseSensor;
 
   /****************************************************
    *  Constructor
    ****************************************************/
 public:
-  cnAutoManager ();
-  virtual  ~cnAutoManager ();
+  cnAuto ();
+  virtual  ~cnAuto ();
 
   /****************************************************
    *  func
    ****************************************************/
 private:
   void doRunStep();
+
+  // 모듈의 자동 운전 조건을 확인
   state_e checkStartRunCondition();
+
+  // 물리 key 이벤트 처리 (롱, 숏, 더블)
   void pushSW(sw_t& sw);
   void updateSw();
 
 public:
-  void Init(cnAutoManager::cfg_t &cfg);
+  void Init(cnAuto::cfg_t &cfg);
   void ThreadJob();
   // condition for auto-run
   int AutoReady();
   void StartSw();
   void StopSw();
   void ResetSw();
+  void PauseStop();
   void UiStarSw();
-  void AlarmAuto(cnAutoManager::state_e err);
+  void AlarmAuto(cnAuto::state_e err);
+  void AlarmAuto(log_dat::head_t *p_head,
+    const char* file,
+    const char* func,
+    const int line,
+    const char* msg);
   enOp::mode GetOPMode();
   enOp::status GetOPStatus();
   void SetOPMode(enOp::mode mode);
   void SetOPStatus(enOp::status status);
+  bool IsDetectAreaSensor();
 };

@@ -36,8 +36,8 @@ public:
     ap_dat *p_apCfgDat;
     seq_dat *p_apSeqDat;
     enFaxis *p_Fm;
-    cnProcess *p_Ap;
-    cnAutoManager *p_Auto;
+    cnJob *p_Ap;
+    cnAuto *p_Auto;
     ap_log *p_Log;
     uint8_t ch;
     uint32_t baud;
@@ -46,8 +46,8 @@ public:
 private:
   nextionpage_t m_currPage;
   enFaxis *m_pFm;
-  cnProcess *m_pAp;
-  cnAutoManager *m_pAuto;
+  cnJob *m_pAp;
+  cnAuto *m_pAuto;
   Ap_reg *m_pApReg;
   ap_log *m_pLog;
   iio *m_pApIo;

@@ -123,6 +123,13 @@
 #define UI_REMOTECTRL_WAIT_TIMEOUT                         100
 #define UI_REMOTECTRL_MOTOR_MOVE_TIMEOUT                   1000*2
 
+#define UI_REMOTECTRL_EVENT_SW_START                      _GPIO_OP_SW_START
+#define UI_REMOTECTRL_EVENT_SW_STOP                       _GPIO_OP_SW_STOP
+#define UI_REMOTECTRL_EVENT_SW_RESET                      _GPIO_OP_SW_RESET
+#define UI_REMOTECTRL_EVENT_SW_ESTOP                      _GPIO_OP_SW_ESTOP
+#define UI_REMOTECTRL_EVENT_SEN_PAUSE                     6
+
+
 uiRemoteCtrl::uiRemoteCtrl ()
 {
   // TODO Auto-generated constructor stub
@@ -287,20 +294,24 @@ void uiRemoteCtrl::ProcessCmd()
     {
       switch(m_Packet.rx_packet.data[0])
       {
-        case _GPIO_OP_SW_START:
+        case UI_REMOTECTRL_EVENT_SW_START:
           m_pAuto->UiStarSw();
           break;
 
-        case _GPIO_OP_SW_STOP:
+        case UI_REMOTECTRL_EVENT_SW_STOP:
           m_pApReg->SetRunState(AP_REG_AUTO_RUNNING, false);
           m_pAuto->StopSw();
           break;
 
-        case _GPIO_OP_SW_RESET:
+        case UI_REMOTECTRL_EVENT_SW_RESET:
           m_pAuto->ResetSw();
           break;
 
-        case _GPIO_OP_SW_ESTOP:
+        case UI_REMOTECTRL_EVENT_SEN_PAUSE:
+          m_pAuto->PauseStop();
+          break;
+
+        case UI_REMOTECTRL_EVENT_SW_ESTOP:
         default:
           break;
       }
@@ -527,7 +538,7 @@ void uiRemoteCtrl::doRunStep()
     break;
     case UI_REMOTECTRL_STEP_CTRL_IO_OUT_WAIT:
     {
-      if (millis()-m_pre_time < 50)
+      if (millis()-m_pre_time < 5)
         break;
 
       /*

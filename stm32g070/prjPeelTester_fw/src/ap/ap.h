@@ -9,8 +9,8 @@
 #include "enFaxis.h"
 
 /* control layer*/
-#include "cnAutomanager.h"
-#include "cnProcess.h"
+#include "cnAuto.h"
+#include "cnJob.h"
 
 /* api layer*/
 #include "apiNextion.h"
