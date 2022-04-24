@@ -1598,7 +1598,7 @@ void uiNextionLcd::doRunStep()
   break;
   case UI_NEXTION_STEP_OK_RESPONSE_START:
   {
-    if (millis() - m_pre_time < 5)
+    if (millis() - m_pre_time < 2)
       break;
 
     okResponse();
@@ -1608,7 +1608,7 @@ void uiNextionLcd::doRunStep()
   break;
   case UI_NEXTION_STEP_OK_RESPONSE_WAIT:
   {
-    if (millis() - m_pre_time < 5)
+    if (millis() - m_pre_time < 2)
       break;
 
     m_step.SetStep(UI_NEXTION_STEP_OK_RESPONSE_END);

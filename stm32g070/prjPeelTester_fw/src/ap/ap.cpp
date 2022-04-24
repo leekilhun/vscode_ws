@@ -574,7 +574,7 @@ void updateErr()
 void updateApReg()
 {
   mcu_io.Update_io();
-    if (autoManager.IsDetectAreaSensor()) //
+  if (autoManager.IsDetectAreaSensor()) //
   {
     mcu_reg.SetRunState(AP_REG_DETECT_AREA_SEN, true);
   }

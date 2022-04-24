@@ -303,6 +303,8 @@ void apMain(void)
     updateErr();
     updateApReg();
     updateLamp();
+
+    delay(1);
   }
 }
 
@@ -335,6 +337,8 @@ void threadEvent(void const *argument)
       remote_ctrl.SendAllState();
       check_pass_ms = millis() - pre_cmd_event_ms;
     }
+
+    delay(1);
   }
 }
 
@@ -380,6 +384,8 @@ void threadCmdLcd(void const *argument)
         lcd_errCnt++;
       }
     }
+
+    delay(1);
   }
 }
 
@@ -424,6 +430,8 @@ void threadCmdFastechMotor(void const *argument)
         fm_errCnt++;
       }
     }
+
+    delay(1);
   }
 }
 
