@@ -1,0 +1,6 @@
+[
+  {
+      "name": "W806-GCC Embedded",
+      "toolchainFile": "${workspaceFolder}/tools/w806-gcc.cmake"
+  }
+]

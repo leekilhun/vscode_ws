@@ -1,0 +1,14 @@
+{
+  "configurations": [
+  {
+    "cwd": "${workspaceRoot}",
+    "executable": "./build/stm32g070_app.elf",
+    "name": "Debug stm32g070",
+    "request": "launch",
+    "type": "cortex-debug",
+    "showDevDebugOutput": false,
+    "servertype": "stlink",
+    "svdFile": "./tools/STM32G070.svd"
+  }
+  ]
+}

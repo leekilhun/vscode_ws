@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "jL_downloader"
+		}
+	],
+	"settings": {	
+		"cmake.generator": "Unix Makefiles",
+		"terminal.integrated.fontFamily": "D2Coding",
+		"terminal.integrated.env.windows": {
+			"PATH": "${env:PATH};C:/tools/mingw32/bin/mingw32-make.exe",	
+		}
+
+	}
+}

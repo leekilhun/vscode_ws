@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "jL_branchCtrller_fw"
+		}
+	],
+	"settings":  {
+    "cmake.configureArgs": [
+        "-DARM_TOOLCHAIN_DIR=C:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin/",
+        "-DCMAKE_MAKE_PROGRAM=C:/tools/xpack-windows-build-tools-4.2.1-2/bin/make.exe"
+    ],	
+    "cmake.generator": "Unix Makefiles",
+    "terminal.integrated.env.windows": {  
+
+			"ARM_TOOLCHAIN_DIR":"c:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin",
+			"PATH": "${env:PATH};c:/tools/xpack-windows-build-tools-4.2.1-2/bin/make.exe",	
+			},
+    "cortex-debug.armToolchainPath": "C:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin/"
+  }
+}

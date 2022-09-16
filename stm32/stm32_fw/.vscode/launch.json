@@ -1,0 +1,14 @@
+{
+  "configurations": [
+  {
+    "cwd": "${workspaceRoot}",
+    "executable": "./build/stm32_fw.elf",
+    "name": "Debug Microcontroller",
+    "request": "launch",
+    "type": "cortex-debug",
+    "showDevDebugOutput": false,
+    "servertype": "stlink",
+    "svdFile": "./tools/STM32F103xx.svd"
+  }
+  ]
+}

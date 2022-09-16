@@ -10,6 +10,10 @@
       "-DCMAKE_MAKE_PROGRAM=C:/tools/xpack-windows-build-tools-4.2.1-2/bin/make.exe"
     ],
     "cmake.generator": "Unix Makefiles",
-    "cortex-debug.armToolchainPath": "C:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin"
+    "cortex-debug.armToolchainPath": "C:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin",
+    "files.associations": {
+      "def.h": "c",
+      "slog.h": "c"
+    }
   }
 }

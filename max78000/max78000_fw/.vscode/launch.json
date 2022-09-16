@@ -1,0 +1,17 @@
+{
+  "configurations": [
+  {
+    "cwd": "${workspaceRoot}",
+    "executable": "./build/max78000_fw.elf",
+    "name": "Debug Microcontroller",
+    "request": "launch",
+    "type": "cortex-debug",
+    "showDevDebugOutput": false,
+    "servertype": "openocd",
+    "configFiles": [
+      "interface/cmsis-dap.cfg",
+      "target/max78000.cfg"
+     ]
+  }
+  ]
+}

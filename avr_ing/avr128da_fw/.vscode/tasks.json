@@ -1,0 +1,22 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "avrdude fw",
+      "type": "shell",
+      "command": "tools/avrdude/avrdude -C./tools/avrdude/avrdude.conf -v -pavr128da48 -cpkobn_updi -D -U flash:w:build/avr128da_fw.hex:i"
+    },
+    {
+      "label": "build fw",
+      "type": "shell",
+      "command": "cmake --build build -j16"
+    },
+    {
+      "label": "down fw",
+      "type": "shell",
+      "command": "./tools/avr128da_ld.exe -p com15 -b 115200 -f ./build/avr128da_fw.bin -r"
+    }    
+  ]
+}
