@@ -12,6 +12,7 @@
 *.cproject
 *.project
 *.fw
+*.code-workspace
 
 ## 폴더 무시
 .vs/
